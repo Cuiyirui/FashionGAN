@@ -16,11 +16,11 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
         self.parser.add_argument('--beta1', type=float, default=0.5, help='momentum term of adam')
         self.parser.add_argument('--no_html', action='store_true', help='do not save intermediate training results to [opt.checkpoints_dir]/[opt.name]/web/')
-        self.parser.add_argument('--clipping_value',type=float,default=0.01,help='value of weight clipping')
+        self.parser.add_argument('--clipping_value',type=float,default=0.001,help='value of weight clipping')
         self.parser.add_argument('--lambda_weight_panelty',type=float,default=10,help='weight of gradient panelty')
         self.parser.add_argument('--which_optimizer',type=str,default='RMSprop',help='Types of optimizer:Adam|RMSprop ')
         # learning rate
-        self.parser.add_argument('--lr', type=float, default=1e-6, help='initial learning rate for adam:2e-4 | RMSprop:1e-4')
+        self.parser.add_argument('--lr', type=float, default=2e-4, help='initial learning rate for adam:2e-4 | RMSprop:1e-4')
         self.parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau')
         self.parser.add_argument('--lr_decay_iters', type=int, default=100, help='multiply by a gamma every lr_decay_iters iterations')
         self.parser.add_argument('--disc_iters', type=int, default=5, help='number of D updates per G update')

@@ -112,10 +112,13 @@ class BiCycleGANModel(BaseModel):
             loss_D.backward()
         return loss_D, [loss_D_fake, loss_D_real]
 
-    def backward_G_GAN(self, fake, netD=None, ll=0.0):
+    def backward_G_GAN(self, fake, netD=None, loss_type='criterionGAN' ,ll=0.0):
         if ll > 0.0:
             pred_fake = netD.forward(fake)
-            loss_G_GAN, losses_G_GAN = self.criterionGAN(pred_fake, True)
+            if loss_type == 'criterionGAN':
+                loss_G_GAN, losses_G_GAN = self.criterionGAN(pred_fake, True)
+            elif loss_type == 'wGAN':
+                loss_G_GAN = self.wGANloss(pred_fake, False)
         else:
             loss_G_GAN = 0
         return loss_G_GAN * ll
@@ -123,11 +126,11 @@ class BiCycleGANModel(BaseModel):
     def backward_EG(self):
         # 1, G(A) should fool D
         self.loss_G_GAN = self.backward_G_GAN(
-            self.fake_data_encoded, self.netD, self.opt.lambda_GAN)
+            self.fake_data_encoded, self.netD, self.opt.GAN_loss_type, self.opt.lambda_GAN)
         if self.opt.use_same_D:
-            self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD, self.opt.lambda_GAN2)
+            self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD, self.opt.GAN_loss_type,self.opt.lambda_GAN2)
         else:
-            self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD2, self.opt.lambda_GAN2)
+            self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD2, self.opt.GAN_loss_type,self.opt.lambda_GAN2)
         # 2. KL loss
         if self.opt.lambda_kl > 0.0:
             kl_element = self.mu.pow(2).add_(self.logvar.exp()).mul_(-1).add_(1).add_(self.logvar)
