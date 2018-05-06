@@ -250,6 +250,8 @@ class BiCycleGANModel(BaseModel):
         if self.opt.lambda_GAN > 0.0:
             ret_dict['G_GAN'] = self.loss_G_GAN.data[0]
             ret_dict['D_GAN'] = self.loss_D.data[0]
+            #ret_dict['D_GAN_fake'] = self.losses_D[0]
+            #ret_dict['D_GAN_real'] = self.losses_D[1]
 
         if self.opt.lambda_GAN2 > 0.0:
             ret_dict['G_GAN2'] = self.loss_G_GAN2.data[0]

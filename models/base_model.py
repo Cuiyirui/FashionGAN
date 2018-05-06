@@ -221,7 +221,13 @@ class BaseModel():
         return self.netE.forward(Variable(input_data, volatile=True))
 
     def encode_real_B(self):
-        self.z_encoded = self.encode(self.input_B)
+        if self.opt.wether_encode_cloth:
+            clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
+            clip_end_index = clip_start_index + self.opt.encode_size
+            clip_cloth = self.input_B[:,:,clip_start_index:clip_end_index,clip_start_index:clip_end_index ]
+            self.z_encoded = self.encode(clip_cloth)
+        else:
+            self.z_encoded = self.encode(self.input_B)
         return util.tensor2vec(self.z_encoded)
 
     def real_data(self, input=None):
