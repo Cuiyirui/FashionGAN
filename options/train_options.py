@@ -16,7 +16,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--niter_decay', type=int, default=100, help='# of iter to linearly decay learning rate to zero')
         self.parser.add_argument('--beta1', type=float, default=0.5, help='momentum term of adam')
         self.parser.add_argument('--no_html', action='store_true', help='do not save intermediate training results to [opt.checkpoints_dir]/[opt.name]/web/')
-        self.parser.add_argument('--clipping_value',type=float,default=1e-5,help='value of weight clipping')
+        self.parser.add_argument('--clipping_value',type=float,default=1e-4,help='value of weight clipping')
         self.parser.add_argument('--lambda_weight_panelty',type=float,default=10,help='weight of gradient panelty')
         self.parser.add_argument('--which_optimizer',type=str,default='RMSprop',help='Types of optimizer:Adam|RMSprop ')
         # learning rate

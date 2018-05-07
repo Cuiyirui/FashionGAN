@@ -11,7 +11,7 @@ class BaseOptions():
 
     def initialize(self):
         self.parser.add_argument('--dataroot', required=True, help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
-        self.parser.add_argument('--batchSize', type=int, default=16, help='input batch size')
+        self.parser.add_argument('--batchSize', type=int, default=2, help='input batch size')
         self.parser.add_argument('--loadSize', type=int, default=256, help='scale images to this size')
         self.parser.add_argument('--fineSize', type=int, default=256, help='then crop to this size')
         self.parser.add_argument('--input_nc', type=int, default=3, help='# of input image channels')
@@ -36,7 +36,7 @@ class BaseOptions():
         self.parser.add_argument('--max_dataset_size', type=int, default=float("inf"),
                                  help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.')
         self.parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation')
-        self.parser.add_argument('--encode_size',type=int,default=64,help='size of image that input encoder,support:16,32,64,128,256')
+        self.parser.add_argument('--encode_size',type=int,default=256,help='size of image that input encoder,support:16,32,64,128,256')
         
         # models
         self.parser.add_argument('--num_Ds', type=int, default=2, help='number of Discrminators')
@@ -44,13 +44,13 @@ class BaseOptions():
         self.parser.add_argument('--which_model_netD', type=str, default='basic_256_multi', help='selects model to use for netD')
         self.parser.add_argument('--which_model_netD2', type=str, default='basic_256_multi', help='selects model to use for netD')
         self.parser.add_argument('--which_model_netG', type=str, default='unet_256', help='selects model to use for netG')
-        self.parser.add_argument('--which_model_netE', type=str, default='resnet_64', help='selects model to use for netE')
+        self.parser.add_argument('--which_model_netE', type=str, default='resnet_256', help='selects model to use for netE')
         self.parser.add_argument('--norm', type=str, default='instance', help='instance normalization or batch normalization')
         self.parser.add_argument('--upsample', type=str, default='basic', help='basic | bilinear')
         self.parser.add_argument('--nl', type=str, default='relu', help='non-linearity activation: relu | lrelu | elu')
         self.parser.add_argument('--wether_encode_cloth',type=bool,default=True,help='wether encode the cloth')
         self.parser.add_argument('--GAN_loss_type',type=str,default='wGAN',help='Types of GAN loss: criterionGAN|wGAN|improved_wGAN')
-
+        self.parser.add_argument('--which_image_encode',type=str,default='groundTruth',help='Which image will be encoded:groundTruth|contour')
         # extra parameters
         self.parser.add_argument('--where_add', type=str, default='all', help='input|all|middle; where to add z in the network G')
         self.parser.add_argument('--conditional_D', action='store_true', help='if use conditional GAN for D')

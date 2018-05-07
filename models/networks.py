@@ -920,3 +920,125 @@ class E_NLayers(nn.Module):
             outputVar = self.fcVar(conv_flat)
             return output, outputVar
         return output
+
+# features from vgg19
+class VGG_Features(nn.Module):
+    def __init__(self):
+        super(VGG_Features, self).__init__()
+        self.vgg19 = tvmodels.vgg19(pretrained = True).features
+
+    def forward(self, input, select_layers=['13', '22']):
+        features = []
+        for name, layer in self.vgg19._modules.items():
+            input = layer(input)
+            if name in select_layers:
+                features.append(input)
+        return features
+
+
+def define_VGGF(gpu_ids=[]):
+    use_gpu = len(gpu_ids) > 0
+    if use_gpu:
+        assert(torch.cuda.is_available())
+    netVGGF = VGG_Features()
+    if len(gpu_ids) > 0:
+        netVGGF.cuda(gpu_ids[0])
+    return netVGGF
+
+
+# L2 loss
+class L2Loss(nn.Module):
+    def __init__(self):
+        super(L2Loss, self).__init__()
+        self.criterion = nn.MSELoss()
+
+    def __call__(self, input, target):
+        loss = self.criterion(input, target)
+        return loss
+
+
+class GramMatrix(nn.Module):
+    def forward(self, input):
+        a, b, c, d = input.size()
+        # a=batch size(=1)
+        # b=number of feature maps
+        # (c,d)=dimensions of a f. map (N=c*d)
+
+        features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
+        G = torch.mm(features, features.t())  # compute the gram product
+
+        # we 'normalize' the values of the gram matrix
+        # by dividing by the number of element in each feature maps.
+        return G.div(a * b * c * d)
+
+
+# base style loss
+class Base_StyleLoss(nn.Module):
+    def __init__(self):
+        super(Base_StyleLoss, self).__init__()
+        self.gram = GramMatrix()
+        self.criterion = nn.MSELoss()
+
+    def __call__(self, input, target):
+        input_gram = self.gram(input)
+        target_gram = self.gram(target)
+        loss = self.criterion(input_gram, target_gram)
+        return loss
+
+
+# define the style loss
+class StyleLoss(nn.Module):
+    def __init__(self, vgg_features, select_layers=['13', '22']):
+        super(StyleLoss, self).__init__()
+        self.VGG_Features = vgg_features
+        self.select_layers = select_layers
+        self.criterion = Base_StyleLoss()
+
+    def __call__(self, input, target):
+        loss = 0.0
+        input_features = self.VGG_Features.forward(input, self.select_layers)
+        target_features = self.VGG_Features.forward(target, self.select_layers)
+        for input_feature, target_feature in zip(input_features, target_features):
+            loss = loss + self.criterion(input_feature.detach(), target_feature.detach())
+        return loss
+
+
+# Content loss
+class ContentLoss(nn.Module):
+    def __init__(self, vgg_features, select_layers=['22']):
+        super(ContentLoss, self).__init__()
+        self.VGG_Features = vgg_features
+        self.select_layers = select_layers
+        self.criterion = nn.MSELoss()
+
+    def __call__(self, input, target):
+        loss = 0.0
+        input_features = self.VGG_Features.forward(input, self.select_layers)
+        target_features = self.VGG_Features.forward(target, self.select_layers)
+        for input_feature, target_feature in zip(input_features, target_features):
+            loss = loss + self.criterion(input_feature.detach(), target_feature.detach())
+        return loss
+
+
+# GLCM
+class GLCM(nn.Module):
+    def forward(self, input):
+        _, C, H, W = input.size()
+        np_data = torch.mean(input[0].data, 0)
+        np_data = np_data.cpu().numpy() * 127.0 + 128.0
+        np_data = np_data.astype(int)
+        result = greycomatrix(np_data, [1], [0], levels = 256, symmetric = True, normed = True)
+        return Variable(torch.cuda.FloatTensor(result), requires_grad=False)
+
+# Glcm loss
+class GlcmLoss(nn.Module):
+    def __init__(self):
+        super(GlcmLoss, self).__init__()
+        self.glcm = GLCM()
+        self.criterion = nn.MSELoss()
+
+    def __call__(self, input, target):
+        input_feature = self.glcm(input)
+        target_feature = self.glcm(target)
+        loss = self.criterion(input_feature.detach(), target_feature.detach())
+        return loss
