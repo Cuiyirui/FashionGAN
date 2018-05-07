@@ -20,10 +20,16 @@ class BaseModel():
     def init_data(self, opt, use_D=True, use_D2=True, use_E=True, use_vae=True):
         print('---------- Networks initialized -------------')
         # load/define networks: define G
-        self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.nz, opt.ngf,
-                                      which_model_netG=opt.which_model_netG,
-                                      norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout, init_type=opt.init_type,
-                                      gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
+        if self.opt.which_image_encode == 'groundTruth':
+            self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.nz, opt.ngf,
+                                        which_model_netG=opt.which_model_netG,
+                                        norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout, init_type=opt.init_type,
+                                        gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
+        elif self.opt.which_image_encode == 'contour':
+            self.netG = networks.define_G(3, opt.output_nc, opt.nz, opt.ngf,
+                                        which_model_netG=opt.which_model_netG,
+                                        norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout, init_type=opt.init_type,
+                                        gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
         networks.print_network(self.netG)
         self.netD, self.netD2, self.netDp = None, None, None
         self.netE, self.netDZ = None, None
@@ -52,11 +58,19 @@ class BaseModel():
 
         # define E
         if use_E:
-            self.netE = networks.define_E(opt.output_nc, opt.nz, opt.nef,
-                                          which_model_netE=opt.which_model_netE,
-                                          norm=opt.norm, nl=opt.nl,
-                                          init_type=opt.init_type, gpu_ids=self.gpu_ids,
-                                          vaeLike=use_vae)
+            if self.opt.which_image_encode == 'groundTruth':
+                self.netE = networks.define_E(opt.output_nc, opt.nz, opt.nef,
+                                            which_model_netE=opt.which_model_netE,
+                                            norm=opt.norm, nl=opt.nl,
+                                            init_type=opt.init_type, gpu_ids=self.gpu_ids,
+                                            vaeLike=use_vae)
+            elif self.opt.which_image_encode == 'contour':
+                self.netE = networks.define_E(input_nc=1, output_nc=opt.nz, ndf=opt.nef,
+                                              which_model_netE=opt.which_model_netE,
+                                              norm=opt.norm, nl=opt.nl,
+                                              init_type=opt.init_type, gpu_ids=self.gpu_ids,
+                                              vaeLike=use_vae)
+            #print self.netE(Variable(torch.rand(3,3,256,256)).cuda())
             networks.print_network(self.netE)
 
         if not opt.isTrain:

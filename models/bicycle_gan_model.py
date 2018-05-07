@@ -44,7 +44,7 @@ class BiCycleGANModel(BaseModel):
         if self.opt.wether_encode_cloth:
             self.forward_AtoBencodeC()
         # if not clip judge which input image will be encoded
-        elif self.opt.which_image_encode == 'groudTruth':
+        elif self.opt.which_image_encode == 'groundTruth':
             self.forward_AtoB()
         elif self.opt.which_image_encode == 'contour':
             self.forward_BtoA()

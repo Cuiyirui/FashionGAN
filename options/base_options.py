@@ -48,9 +48,9 @@ class BaseOptions():
         self.parser.add_argument('--norm', type=str, default='instance', help='instance normalization or batch normalization')
         self.parser.add_argument('--upsample', type=str, default='basic', help='basic | bilinear')
         self.parser.add_argument('--nl', type=str, default='relu', help='non-linearity activation: relu | lrelu | elu')
-        self.parser.add_argument('--wether_encode_cloth',type=bool,default=True,help='wether encode the cloth')
+        self.parser.add_argument('--wether_encode_cloth',type=bool,default=False,help='wether encode the cloth')
         self.parser.add_argument('--GAN_loss_type',type=str,default='wGAN',help='Types of GAN loss: criterionGAN|wGAN|improved_wGAN')
-        self.parser.add_argument('--which_image_encode',type=str,default='groundTruth',help='Which image will be encoded:groundTruth|contour')
+        self.parser.add_argument('--which_image_encode',type=str,default='contour',help='Which image will be encoded:groundTruth|contour')
         # extra parameters
         self.parser.add_argument('--where_add', type=str, default='all', help='input|all|middle; where to add z in the network G')
         self.parser.add_argument('--conditional_D', action='store_true', help='if use conditional GAN for D')
