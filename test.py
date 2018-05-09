@@ -1,5 +1,6 @@
 import os
 from options.test_options import TestOptions
+from options.train_options import TrainOptions
 from data.data_loader import CreateDataLoader
 from models.models import create_model
 from util.visualizer import save_images
@@ -19,7 +20,6 @@ opt = TestOptions().parse()
 opt.nThreads = 1   # test code only supports nThreads=1
 opt.batchSize = 1   # test code only supports batchSize=1
 opt.serial_batches = True  # no shuffle
-
 # create dataset
 data_loader = CreateDataLoader(opt)
 dataset = data_loader.load_data()
@@ -59,3 +59,20 @@ for i, data in enumerate(islice(dataset, opt.how_many)):
                 width=opt.fineSize, aspect_ratio=opt.aspect_ratio)
 
 webpage.save()
+#save test result
+test_name_dataset = '1K_'
+if opt.GAN_loss_type == 'wGAN':
+    test_name_GAN_type = 'wGAN_'
+    test_name_loss_info = 'loss_clip_'+str(opt.clipping_value)+'_'
+elif opt.GAN_loss_type == 'criterionGAN':
+    test_name_GAN_type = 'criterionGAN'
+    test_name_loss_info = ''
+test_name_encode = 'encode_'+ str(opt.encode_size)+'_'
+test_name_batch = 'batch_'+ str(opt.batchSize)+'_'
+test_name_direction = 'direction_'+opt.which_direction
+
+test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type\
+            +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/val'
+origin_name = './results/edges_cloth2shirt/'+opt.phase
+import shutil
+shutil.copytree(origin_name,test_name)

@@ -5,14 +5,14 @@ E_PATH='./pretrained_models/latest_net_E.pth'
 
 # dataset
 CLASS='contour2shirt'
-DIRECTION='AtoB' # from domain A to domain B
+DIRECTION='BtoA' # from domain A to domain B
 LOAD_SIZE=256 # scale images to this size
 FINE_SIZE=256 # then crop to this size
 INPUT_NC=1  # number of channels in the input image
 
 # misc
 GPU_ID=1   # gpu id
-HOW_MANY=10 # number of input images duirng test
+HOW_MANY=50 # number of input images duirng test
 NUM_SAMPLES=10 # number of samples per input images
 
 # command
