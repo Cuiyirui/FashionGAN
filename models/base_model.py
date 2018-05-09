@@ -3,6 +3,7 @@ import torch
 import util.util as util
 from torch.autograd import Variable
 from . import networks
+import numpy as np
 
 
 class BaseModel():

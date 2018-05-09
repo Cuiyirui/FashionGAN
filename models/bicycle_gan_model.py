@@ -34,7 +34,6 @@ class BiCycleGANModel(BaseModel):
         self.real_A = Variable(self.input_A)
         self.real_B = Variable(self.input_B)
         # A is contour image B is ground truth
-
         # A1, B1 for encoded; A2, B2 for random
         self.real_A_encoded = self.real_A[0:half_size]
         self.real_A_random = self.real_A[half_size:]
