@@ -41,8 +41,10 @@ class BiCycleGANModel(BaseModel):
         self.real_B_encoded = self.real_B[0:half_size]
         self.real_B_random = self.real_B[half_size:]
         # whether encode clip cloth
-        if self.opt.wether_encode_cloth:
+        if self.opt.wether_encode_cloth and self.opt.which_image_encode == 'groundTruth':
             self.forward_AtoBencodeC()
+        elif self.opt.wether_encode_cloth and self.opt.which_image_encode == 'contour':
+            self.forward_BtoAencodeC()
         # if not clip judge which input image will be encoded
         elif self.opt.which_image_encode == 'groundTruth':
             self.forward_AtoB()
@@ -281,6 +283,35 @@ class BiCycleGANModel(BaseModel):
         if self.opt.lambda_z > 0.0:
             self.mu2, logvar2 = self.netE.forward(self.fake_B_random)  # mu2 is a point estimate
 
+    # origin bicycleGAN with encoded contour
+    def forward_BtoA(self):
+        # encode
+        self.mu, self.logvar = self.netE.forward(self.real_A_encoded)
+        std = self.logvar.mul(0.5).exp_()
+        eps = self.get_z_random(std.size(0), std.size(1), 'gauss')
+        self.z_encoded = eps.mul(std).add_(self.mu)
+
+        # get random z
+        self.z_random = self.get_z_random(self.real_B_random.size(0), self.opt.nz, 'gauss')
+        # generate fake_B_encoded
+        self.fake_B_encoded = self.netG.forward(self.real_B_encoded, self.z_encoded)
+        # generate fake_B_random
+        self.fake_B_random = self.netG.forward(self.real_B_encoded, self.z_random)
+        if self.opt.conditional_D:  # tedious conditoinal data
+            self.fake_data_encoded = torch.cat([self.real_A_encoded, self.fake_B_encoded], 1)
+            self.real_data_encoded = torch.cat([self.real_A_encoded, self.real_B_encoded], 1)
+            self.fake_data_random = torch.cat([self.real_A_encoded, self.fake_B_random], 1)
+            self.real_data_random = torch.cat([self.real_A_random, self.real_B_random], 1)
+        else:
+            self.fake_data_encoded = self.fake_B_encoded
+            self.fake_data_random = self.fake_B_random
+            self.real_data_encoded = self.real_B_encoded
+            self.real_data_random = self.real_B_random
+
+        # compute z_predict
+        if self.opt.lambda_z > 0.0:
+            self.mu2, logvar2 = self.netE.forward(self.fake_B_random)  # mu2 is a point estimate
+
     # encode clip cloth clothGAN
     def forward_AtoBencodeC(self):
         # encode clip image from groud truth
@@ -317,20 +348,28 @@ class BiCycleGANModel(BaseModel):
                                  clip_start_index:clip_end_index]
             self.mu2, logvar2 = self.netE.forward(self.fake_C_random)  # mu2 is a point estimate
 
-    # origin bicycleGAN with encoded contour
-    def forward_BtoA(self):
-        # encode
+    # encode clip cloth clothGAN
+    def forward_BtoAencodeC(self):
+        # encode clip image from groud truth
+        clip_start_index = (self.opt.fineSize - self.opt.encode_size) // 2
+        clip_end_index = clip_start_index + self.opt.encode_size
+        self.real_C_encoded = self.real_B_encoded[:, :, clip_start_index:clip_end_index,
+                              clip_start_index:clip_end_index]
+        self.real_C_random = self.real_B_random[:, :, clip_start_index:clip_end_index, clip_start_index:clip_end_index]
+        self.real_C_encoded = torch.cat([self.real_C_encoded, self.real_C_encoded, self.real_C_encoded, self.real_C_encoded], 2)
+        self.real_C_encoded = torch.cat([self.real_C_encoded, self.real_C_encoded, self.real_C_encoded, self.real_C_encoded], 3)
+
         self.mu, self.logvar = self.netE.forward(self.real_A_encoded)
         std = self.logvar.mul(0.5).exp_()
         eps = self.get_z_random(std.size(0), std.size(1), 'gauss')
         self.z_encoded = eps.mul(std).add_(self.mu)
 
         # get random z
-        self.z_random = self.get_z_random(self.real_B_random.size(0), self.opt.nz, 'gauss')
+        self.z_random = self.get_z_random(self.real_A_random.size(0), self.opt.nz, 'gauss')
         # generate fake_B_encoded
-        self.fake_B_encoded = self.netG.forward(self.real_B_encoded, self.z_encoded)
+        self.fake_B_encoded = self.netG.forward(self.real_C_encoded_encoded, self.z_encoded)
         # generate fake_B_random
-        self.fake_B_random = self.netG.forward(self.real_B_encoded, self.z_random)
+        self.fake_B_random = self.netG.forward(self.real_C_encoded, self.z_random)
         if self.opt.conditional_D:  # tedious conditoinal data
             self.fake_data_encoded = torch.cat([self.real_A_encoded, self.fake_B_encoded], 1)
             self.real_data_encoded = torch.cat([self.real_A_encoded, self.real_B_encoded], 1)
@@ -344,4 +383,6 @@ class BiCycleGANModel(BaseModel):
 
         # compute z_predict
         if self.opt.lambda_z > 0.0:
-            self.mu2, logvar2 = self.netE.forward(self.fake_B_random)  # mu2 is a point estimate
+            self.fake_C_random = self.fake_B_random[:, :, clip_start_index:clip_end_index,
+                                 clip_start_index:clip_end_index]
+            self.mu2, logvar2 = self.netE.forward(self.fake_C_random)  # mu2 is a point estimate
