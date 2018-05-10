@@ -2,9 +2,12 @@ import os
 import torch
 import util.util as util
 from torch.autograd import Variable
+from pdb import set_trace as st
 from . import networks
 import numpy as np
-
+import itertools
+import random
+import math
 
 class BaseModel():
     def name(self):
@@ -18,7 +21,7 @@ class BaseModel():
         self.Tensor = torch.cuda.FloatTensor if self.gpu_ids else torch.Tensor       
         self.save_dir = os.path.join(opt.checkpoints_dir, opt.name)
 
-    def init_data(self, opt, use_D=True, use_D2=True, use_E=True, use_vae=True):
+    def init_data(self, opt, use_D=True, use_D2=True, use_E=True, use_vae=True, use_VGGF=True, use_Dl=True):
         print('---------- Networks initialized -------------')
         # load/define networks: define G
         if self.opt.which_image_encode == 'groundTruth':
@@ -31,9 +34,11 @@ class BaseModel():
                                         which_model_netG=opt.which_model_netG,
                                         norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout, init_type=opt.init_type,
                                         gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
+
         networks.print_network(self.netG)
         self.netD, self.netD2, self.netDp = None, None, None
         self.netE, self.netDZ = None, None
+        self.netVGGF, self.netDl = None, None
 
         # if opt.isTrain:
         use_sigmoid = opt.gan_mode == 'dcgan'
@@ -43,6 +48,9 @@ class BaseModel():
         if not opt.isTrain:
             use_D = False
             use_D2 = False
+            if not opt.whether_local_loss:
+                use_VGGF = False
+                use_Dl = False
 
         if use_D:
             self.netD = networks.define_D(D_output_nc, opt.ndf,
@@ -74,6 +82,18 @@ class BaseModel():
             #print self.netE(Variable(torch.rand(3,3,256,256)).cuda())
             networks.print_network(self.netE)
 
+        # define vggf for feature extraction
+        if use_VGGF:
+            self.netVGGF = networks.define_VGGF(gpu_ids=self.gpu_ids)
+            networks.print_network(self.netVGGF)
+
+        if use_Dl:
+            self.netDl = networks.define_D(3, opt.ndf,
+                                           which_model_netD=opt.which_model_netDl,
+                                           norm=opt.norm, nl=opt.nl,
+                                           use_sigmoid=use_sigmoid, init_type=opt.init_type, num_Ds=opt.num_Ds, gpu_ids=self.gpu_ids)
+            networks.print_network(self.netDl)
+
         if not opt.isTrain:
             self.load_network_test(self.netG, opt.G_path)
 
@@ -87,6 +107,8 @@ class BaseModel():
                 self.load_network(self.netD, 'D', opt.which_epoch)
             if use_D2:
                 self.load_network(self.netD, 'D2', opt.which_epoch)
+            if use_Dl:
+                self.load_network(self.netDl, 'Dl', opt.which_epoch)
 
             if use_E:
                 self.load_network(self.netE, 'E', opt.which_epoch)
@@ -95,9 +117,13 @@ class BaseModel():
         # define loss functions
         self.criterionGAN = networks.GANLoss(
             mse_loss=not use_sigmoid, tensor=self.Tensor)
-	self.wGANloss = networks.wGANLoss(tensor=self.Tensor)
+        self.wGANloss = networks.wGANLoss(tensor=self.Tensor)
         self.criterionL1 = torch.nn.L1Loss()
         self.criterionZ = torch.nn.L1Loss()
+        self.criterionS_l = networks.StyleLoss(vgg_features=self.netVGGF, select_layers=opt.style_feat_layers)
+        self.criterionL2 = networks.L2Loss()
+        self.criterionC = networks.ContentLoss(vgg_features=self.netVGGF, select_layers=opt.content_feat_layers)
+        self.criterionGLCM = networks.GlcmLoss()
 
         if opt.isTrain:
             # initialize optimizers
@@ -128,6 +154,13 @@ class BaseModel():
                 elif opt.which_optimizer =='RMSprop':
                     self.optimizer_D2 = torch.optim.RMSprop(self.netD2.parameters(),lr=opt.lr)
                 self.optimizers.append(self.optimizer_D2)
+            if use_Dl:
+                if opt.which_optimizer =='Adam':
+                    self.optimizer_Dl = torch.optim.Adam(self.netDl.parameters(),
+                                                         lr=opt.lr, betas=(opt.beta1, 0.999))
+                elif opt.which_optimizer =='RMSprop':
+                    self.optimizer_Dl = torch.optim.RMSprop(self.netDl.parameters(),lr=opt.lr)
+                self.optimizers.append(self.optimizer_Dl)
 
             for optimizer in self.optimizers:
                 self.schedulers.append(networks.get_scheduler(optimizer, opt))
@@ -215,6 +248,14 @@ class BaseModel():
             input_B = input_B.cuda(self.gpu_ids[0], async=True)
         self.input_A = input_A
         self.input_B = input_B
+
+        # add material C
+        if self.opt.whether_encode_cloth:
+            input_C = input['C']
+            if len(self.gpu_ids) > 0:
+                input_C = input_C.cuda(self.gpu_ids[0], async=True)
+            self.input_C = input_C
+
         # get image paths
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
@@ -231,16 +272,18 @@ class BaseModel():
         self.z = Variable(z, volatile=True)
         self.fake_B = self.netG.forward(self.real_A, self.z)
         self.real_B = Variable(self.input_B, volatile=True)
+        if self.opt.whether_encode_cloth:
+            self.real_C = Variable(self.input_C, volatile=True)
 
     def encode(self, input_data):
         return self.netE.forward(Variable(input_data, volatile=True))
 
     def encode_real_B(self):
-        if self.opt.wether_encode_cloth:
-            clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
-            clip_end_index = clip_start_index + self.opt.encode_size
-            clip_cloth = self.input_B[:,:,clip_start_index:clip_end_index,clip_start_index:clip_end_index ]
-            self.z_encoded = self.encode(clip_cloth)
+        if self.opt.whether_encode_cloth:
+            # clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
+            # clip_end_index = clip_start_index + self.opt.encode_size
+            # clip_cloth = self.input_B[:,:,clip_start_index:clip_end_index,clip_start_index:clip_end_index ]
+            self.z_encoded = self.encode(self.input_C)
         else:
             self.z_encoded = self.encode(self.input_B)
         return util.tensor2vec(self.z_encoded)
@@ -262,4 +305,53 @@ class BaseModel():
         real_A = util.tensor2im(self.real_A.data)
         fake_B = util.tensor2im(self.fake_B.data)
         real_B = util.tensor2im(self.real_B.data)
-        return self.image_paths, real_A, fake_B, real_B, z_sample
+        real_C = util.tensor2im(self.real_C.data)
+        if self.opt.whether_encode_cloth:
+            return self.image_paths, real_A, fake_B, real_B, real_C, z_sample
+        else:
+            return self.image_paths, real_A, fake_B, real_B, z_sample
+
+    # generate random blocks inside the border
+    def generate_random_block(self, input, target):
+        _, height, width = target.size()
+        target_tensor = target.data
+        block_size = random.randint(self.opt.min_block_size, self.opt.max_block_size)
+        input_blocks = []
+        target_blocks = []
+        for i in range(self.opt.block_num):
+            while True:
+                x = random.randint(0, height - block_size - 1)
+                y = random.randint(0, width - block_size - 1)
+                if not ((0.98 <= target_tensor[0, x, y] <= 1 \
+                         and 0.98 <= target_tensor[1, x, y] <= 1 \
+                         and 0.98 <= target_tensor[2, x, y] <= 1) \
+                        or (0.98 <= target_tensor[0, x + block_size, y + block_size] <= 1 \
+                            and 0.98 <= target_tensor[1, x + block_size, y + block_size] <= 1 \
+                            and 0.98 <= target_tensor[2, x + block_size, y + block_size] <= 1)):
+                    break
+            target_blocks.append(
+                Variable(target_tensor[:, x:x + block_size, y:y + block_size].unsqueeze(0), requires_grad=False))
+            """
+                x_m = random.randint(0, width-block_size-1)
+            y_m = random.randint(0, height-block_size-1)
+                input_blocks.append(Variable(input.data[:, x_m:x_m+block_size, y_m:y_m+block_size].unsqueeze(0), requires_grad=False))
+            """
+            x1 = random.randint(0, self.opt.encode_size - block_size)
+            y1 = random.randint(0, self.opt.encode_size - block_size)
+            input_blocks.append(
+                Variable(input.data[:, x1:x1 + block_size, y1:y1 + block_size].unsqueeze(0), requires_grad=False))
+
+        return input_blocks, target_blocks
+
+    # generate material from fake_B, not be used now
+    def generate_material(self, input):
+        _, _, height, width = input.size()
+        x2 = int(math.floor(5.0/8.0 * width));
+        y2 = int(math.floor(5.0/8.0 * height));
+        # x2 = int(math.floor(2.0/3.0 * width));
+        # y2 = int(math.floor(2.0/3.0 * height));
+	    # x2 = int(math.floor(3.0/3.0 * width));
+        # y2 = int(math.floor(3.0/3.0 * height));
+        result = input[:, :, y2-self.opt.c_material_size:y2, x2-self.opt.c_material_size:x2]
+        result = torch.nn.functional.upsample(result, size=[height, width], mode='bilinear')
+        return result
