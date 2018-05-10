@@ -366,7 +366,7 @@ class BiCycleGANModel(BaseModel):
         # get random z
         self.z_random = self.get_z_random(self.real_A_random.size(0), self.opt.nz, 'gauss')
         # generate fake_B_encoded
-        self.fake_B_encoded = self.netG.forward(self.real_C_encoded_encoded, self.z_encoded)
+        self.fake_B_encoded = self.netG.forward(self.real_C_encoded, self.z_encoded)
         # generate fake_B_random
         self.fake_B_random = self.netG.forward(self.real_C_encoded, self.z_random)
         if self.opt.conditional_D:  # tedious conditoinal data
