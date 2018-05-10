@@ -53,7 +53,7 @@ class BaseOptions():
         self.parser.add_argument('--which_image_encode',type=str,default='groundTruth',help='Which image will be encoded:groundTruth|contour')
         # extra parameters
         self.parser.add_argument('--where_add', type=str, default='all', help='input|all|middle; where to add z in the network G')
-        self.parser.add_argument('--conditional_D', action='store_true', help='if use conditional GAN for D')
+        self.parser.add_argument('--conditional_D', type=bool,default=True, help='if use conditional GAN for D')
         self.parser.add_argument('--init_type', type=str, default='xavier', help='network initialization [normal|xavier|kaiming|orthogonal]')
         self.parser.add_argument('--center_crop', action='store_true', help='if apply for center cropping for the test')
         # special tasks
