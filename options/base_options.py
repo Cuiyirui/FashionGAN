@@ -21,7 +21,7 @@ class BaseOptions():
         self.parser.add_argument('--ngf', type=int, default=64, help='# of gen filters in first conv layer')
         self.parser.add_argument('--ndf', type=int, default=64, help='# of discrim filters in first conv layer')
 
-        self.parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2, -1 for CPU mode')
+        self.parser.add_argument('--gpu_ids', type=str, default='1', help='gpu ids: e.g. 0  0,1,2, 0,2, -1 for CPU mode')
         self.parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment. It decides where to store samples and models')
         self.parser.add_argument('--resize_or_crop', type=str, default='resize_and_crop', help='not implemented')
         self.parser.add_argument('--dataset_mode', type=str, default='aligned', help='aligned,single')
@@ -54,17 +54,27 @@ class BaseOptions():
         self.parser.add_argument('--upsample', type=str, default='basic', help='basic | bilinear')
         self.parser.add_argument('--nl', type=str, default='relu', help='non-linearity activation: relu | lrelu | elu')
 
-        self.parser.add_argument('--whether_encode_cloth',type=bool,default=True, help='whether crop the cloth')
+        self.parser.add_argument('--input_image_num',type=int,default=2,help='number of input images:2,3 | if 2: contour+ground truth if 3: contour+ground truth+material')
+        self.parser.add_argument('--whether_encode_cloth',type=bool,default=True, help='whether crop the cloth') #maybe modify
         self.parser.add_argument('--GAN_loss_type',type=str,default='wGAN',help='Types of GAN loss: criterionGAN|wGAN|improved_wGAN')
         self.parser.add_argument('--which_image_encode',type=str,default='groundTruth', help='Which image will be encoded:groundTruth|contour')
 
         # extra parameters
         self.parser.add_argument('--where_add', type=str, default='all', help='input|all|middle; where to add z in the network G')
-        self.parser.add_argument('--conditional_D', type=bool,default=True, help='if use conditional GAN for D')
+        self.parser.add_argument('--conditional_D', type=bool,default=False, help='if use conditional GAN for D')
         self.parser.add_argument('--init_type', type=str, default='xavier', help='network initialization [normal|xavier|kaiming|orthogonal]')
         self.parser.add_argument('--center_crop', action='store_true', help='if apply for center cropping for the test')
+
+        # local loss
+        self.parser.add_argument('--whether_local_loss', type=bool, default=True,help='whether use local loss')  # should be False if not whether_encode_cloth
+        # VGG features(TextureGAN)
+        self.parser.add_argument('--style_feat_layers', type=list, default=['13', '22'],help='feature layers for style loss')
+        self.parser.add_argument('--content_feat_layers', type=list, default=['22'],help='feature layers for style loss')
+
         # special tasks
         self.initialized = True
+
+
 
     def parse(self):
         if not self.initialized:

@@ -50,6 +50,8 @@ for i, data in enumerate(islice(dataset, opt.how_many)):
         if nn == 0:
             all_images = [real_A, real_B, fake_B]
             all_names = ['input', 'ground truth', 'encoded']
+            #from skimage import io
+            #io.imshow(real_A)
         else:
             all_images.append(fake_B)
             all_names.append('random sample%2.2d' % nn)
@@ -65,13 +67,18 @@ if opt.GAN_loss_type == 'wGAN':
     test_name_GAN_type = 'wGAN_'
     test_name_loss_info = 'loss_clip_'+str(opt.clipping_value)+'_'
 elif opt.GAN_loss_type == 'criterionGAN':
-    test_name_GAN_type = 'criterionGAN'
+    test_name_GAN_type = 'criterionGAN_'
     test_name_loss_info = ''
+# D condition
+if opt.conditional_D:
+    test_name_cD = 'cD_'
+else:
+    test_name_cD = '_'
 test_name_encode = 'encode_'+ str(opt.encode_size)+'_'
 test_name_batch = 'batch_'+ str(opt.batchSize)+'_'
 test_name_direction = 'direction_'+opt.which_direction
 
-test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type\
+test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type+test_name_cD\
             +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/val'
 origin_name = './results/edges_cloth2shirt/'+opt.phase
 import shutil

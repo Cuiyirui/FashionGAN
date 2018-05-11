@@ -34,7 +34,6 @@ class TrainOptions(BaseOptions):
         self.isTrain = True
 
         # local loss
-        self.parser.add_argument('--whether_local_loss', type=bool, default=True, help='whether use local loss') # should be False if not whether_encode_cloth
         self.parser.add_argument('--lambda_s_l', type=float, default=2000.0, help='weight for local style loss')
         self.parser.add_argument('--lambda_p_l', type=float, default=1.0, help='weight for local pixel loss')
         self.parser.add_argument('--lambda_GAN_l', type=float, default=1.0, help='weight on local D loss')
@@ -42,12 +41,6 @@ class TrainOptions(BaseOptions):
 
         # content loss
         self.parser.add_argument('--lambda_c', type=float, default=1.0, help='weight for content loss')
-
-        # VGG features(TextureGAN)
-        self.parser.add_argument('--style_feat_layers', type=list, default=['13', '22'],
-                                 help='feature layers for style loss')
-        self.parser.add_argument('--content_feat_layers', type=list, default=['22'],
-                                 help='feature layers for style loss')
 
         # VGG features(Style transfer)
         # self.parser.add_argument('--style_feat_layers', type=list, default=['0', '2', '5', '7', '10', '12', '14', '16', '19', '21', '23', '25', '28', '30', '32', '34'], help='feature layers for style loss')

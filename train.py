@@ -61,17 +61,23 @@ for epoch in range(1, opt.niter + opt.niter_decay + 1):
 
 #save train result
 test_name_dataset = '1K_'
+# GAN loss type
 if opt.GAN_loss_type == 'wGAN':
     test_name_GAN_type = 'wGAN_'
     test_name_loss_info = 'loss_clip_'+str(opt.clipping_value)+'_'
 elif opt.GAN_loss_type == 'criterionGAN':
-    test_name_GAN_type = 'criterionGAN'
+    test_name_GAN_type = 'criterionGAN_'
     test_name_loss_info = ''
+# D condition
+if opt.conditional_D:
+    test_name_cD = 'cD'
+else:
+    test_name_cD = '_'
 test_name_encode = 'encode_'+ str(opt.encode_size)+'_'
 test_name_batch = 'batch_'+ str(opt.batchSize)+'_'
 test_name_direction = 'direction_'+opt.which_direction
 
-test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type\
+test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type+test_name_cD\
             +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/train'
 origin_name = '../checkpoints_pub/contour2shirt/contour2shirt_bicycle_gan/web'
 import shutil

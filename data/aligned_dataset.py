@@ -37,7 +37,7 @@ class AlignedDataset(BaseDataset):
                w_offset:w_offset + self.opt.fineSize]
         B = AB[:, h_offset:h_offset + self.opt.fineSize,
                w + w_offset:w + w_offset + self.opt.fineSize]
-        if self.opt.whether_encode_cloth:
+        if self.opt.whether_encode_cloth and self.opt.input_image_num == 3:
             clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
             clip_end_index = clip_start_index + self.opt.encode_size
             C = B[:,clip_start_index:clip_end_index,clip_start_index:clip_end_index]
@@ -70,11 +70,11 @@ class AlignedDataset(BaseDataset):
         if output_nc == 1:
             tmp = B[0, ...] * 0.299 + B[1, ...] * 0.587 + B[2, ...] * 0.114
             B = tmp.unsqueeze(0)
-            if self.opt.whether_encode_cloth:
+            if self.opt.whether_encode_cloth and self.opt.input_image_num==3:
                 tmp1 = C[0, ...] * 0.299 + C[1, ...] * 0.587 + C[2, ...] * 0.114
                 C = tmp1.unsqueeze(0)
 
-        if self.opt.whether_encode_cloth:
+        if self.opt.whether_encode_cloth and self.opt.input_image_num==3:
             return {'A': A, 'B': B, 'C': C,
                     'A_paths': AB_path, 'B_paths': AB_path, 'C_paths': AB_path}
         else:
