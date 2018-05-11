@@ -13,10 +13,11 @@ class BiCycleGANModel(BaseModel):
     def initialize(self, opt):
         if opt.isTrain:
             assert opt.batchSize % 2 == 0  # load two images at one time.
-
         use_D = opt.isTrain and opt.lambda_GAN > 0.0
         use_D2 = opt.isTrain and opt.lambda_GAN2 > 0.0 and not opt.use_same_D
         use_E = opt.isTrain or not opt.no_encode
+        use_VGGF = opt.isTrain and opt.whether_local_loss
+        use_Dl = opt.isTrain and opt.whether_local_loss
         BaseModel.initialize(self, opt)
         self.init_data(opt, use_D=use_D, use_D2=use_D2, use_E=use_E, use_vae=True)
         self.skip = False
@@ -39,10 +40,16 @@ class BiCycleGANModel(BaseModel):
         self.real_A_random = self.real_A[half_size:]
         self.real_B_encoded = self.real_B[0:half_size]
         self.real_B_random = self.real_B[half_size:]
-        # whether encode clip cloth
-        if self.opt.wether_encode_cloth and self.opt.which_image_encode == 'groundTruth':
+        # whether clip cloth
+        if self.opt.whether_encode_cloth:
+            self.real_C = Variable(self.input_C)
+            self.real_C_encoded = self.real_C[0:half_size]
+            self.real_C_random = self.real_C[half_size:]
+
+
+        if self.opt.whether_encode_cloth and self.opt.which_image_encode == 'groundTruth':
             self.forward_AtoBencodeC()
-        elif self.opt.wether_encode_cloth and self.opt.which_image_encode == 'contour':
+        elif self.opt.whether_encode_cloth and self.opt.which_image_encode == 'contour':
             self.forward_BtoAencodeC()
         # if not clip judge which input image will be encoded
         elif self.opt.which_image_encode == 'groundTruth':
@@ -102,7 +109,7 @@ class BiCycleGANModel(BaseModel):
         if self.opt.use_same_D:
             self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD, self.opt.GAN_loss_type,self.opt.lambda_GAN2)
         else:
-            self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD2, self.opt.GAN_loss_type,self.opt.lambda_GAN2)
+            self.loss_G_GAN2 = self.backward_G_GAN(self.fake_data_random, self.netD2, self.opt.GAN_loss_type, self.opt.lambda_GAN2)
         # 2. KL loss
         if self.opt.lambda_kl > 0.0:
             kl_element = self.mu.pow(2).add_(self.logvar.exp()).mul_(-1).add_(1).add_(self.logvar)
@@ -115,7 +122,55 @@ class BiCycleGANModel(BaseModel):
         else:
             self.loss_G_L1 = 0.0
 
-        self.loss_G = self.loss_G_GAN + self.loss_G_GAN2 + self.loss_G_L1 + self.loss_kl
+        # 7, reconstruction |fake_B-real_B|
+        if self.opt.lambda_c > 0.0:
+            self.loss_c = self.criterionC(self.fake_B_encoded, self.real_B_encoded) * self.opt.lambda_c
+        else:
+            self.loss_c = 0.0
+
+        ## local loss
+        if self.opt.whether_local_loss:
+            # 4. local gan loss
+            if self.opt.lambda_GAN_l > 0.0:
+                self.loss_G_GAN_l = 0.0
+                for fake_block in self.fake_B_blocks_encoded:
+                    self.loss_G_GAN_l = self.loss_G_GAN_l + self.backward_G_GAN(fake_block, self.netDl,
+                                                                                self.opt.GAN_loss_type,
+                                                                                self.opt.lambda_GAN_l)
+                self.loss_G_GAN_l = self.loss_G_GAN_l / self.opt.block_num
+            else:
+                self.loss_G_GAN_l = 0.0
+
+            # 5. local style loss
+            if self.opt.lambda_s_l > 0.0:
+                self.loss_s_l = 0.0
+                for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
+                    self.loss_s_l = self.loss_s_l + self.criterionS_l(real_block, fake_block) * self.opt.lambda_s_l
+                self.loss_s_l = self.loss_s_l / self.opt.block_num
+            else:
+                self.loss_s_l = 0.0
+
+            # 6. local pixel loss
+            if self.opt.lambda_p_l > 0.0:
+                self.loss_p_l = 0.0
+                for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
+                    self.loss_p_l = self.loss_p_l + self.criterionL2(real_block, fake_block) * self.opt.lambda_p_l
+                self.loss_p_l = self.loss_p_l / self.opt.block_num
+            else:
+                self.loss_p_l = 0.0
+
+            # 7. local glcm loss
+            if self.opt.lambda_g_l > 0.0:
+                self.loss_g_l = 0.0
+                for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
+                    self.loss_g_l = self.loss_g_l + self.criterionGLCM(real_block, fake_block) * self.opt.lambda_g_l
+                self.loss_g_l = self.loss_g_l / self.opt.block_num
+            else:
+                self.loss_g_l = 0.0
+
+        self.loss_G = self.loss_G_GAN + self.loss_G_GAN2 + self.loss_G_L1 + self.loss_kl + self.loss_c
+        if self.opt.whether_local_loss:
+            self.loss_G = self.loss_G + self.loss_G_GAN_l + self.loss_s_l + self.loss_p_l + self.loss_g_l
         self.loss_G.backward(retain_graph=True)
 
     def update_D(self, data):
@@ -134,18 +189,30 @@ class BiCycleGANModel(BaseModel):
             # weight clipping if wGAN
             if self.opt.GAN_loss_type=='wGAN':
                 self.weightClipping(self.netD)
-
+        # update D2
         if self.opt.lambda_GAN2 > 0.0 and not self.opt.use_same_D:
             self.optimizer_D2.zero_grad()
-            self.loss_D2, self.losses_D2 = self.backward_D(self.netD2, self.real_data_random, self.fake_data_random,self.GAN_loss_type)
+            self.loss_D2, self.losses_D2 = self.backward_D(self.netD2, self.real_data_random, self.fake_data_random, self.opt.GAN_loss_type)
             self.optimizer_D2.step()
             # weight clipping if wGAN
             if self.opt.GAN_loss_type=='wGAN':
                 self.weightClipping(self.netD2)
+        # update Dl
+        if self.opt.whether_local_loss and self.opt.lambda_GAN_l > 0.0:
+            self.loss_Dl = 0.0
+            for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
+                self.optimizer_Dl.zero_grad()
+                loss_Dl, self.losses_Dl = self.backward_D(self.netDl, real_block, fake_block, self.opt.GAN_loss_type)
+                self.loss_Dl = self.loss_Dl + loss_Dl
+                self.optimizer_Dl.step()
+                if self.opt.GAN_loss_type == 'wGAN':
+                    self.weightClipping(self.netDl)
+            self.loss_Dl = self.loss_Dl / self.opt.block_num
+
 
     def backward_G_alone(self):
         # 3, reconstruction |(E(G(A, z_random)))-z_random|
-        if self.opt.lambda_z > 0.0:
+        if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
             self.loss_z_L1 = torch.mean(torch.abs(self.mu2 - self.z_random)) * self.opt.lambda_z
             self.loss_z_L1.backward()
         else:
@@ -160,11 +227,12 @@ class BiCycleGANModel(BaseModel):
         self.optimizer_G.step()
         self.optimizer_E.step()
         # update G only
-        if self.opt.lambda_z > 0.0:
+        if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
             self.optimizer_G.zero_grad()
             self.optimizer_E.zero_grad()
             self.backward_G_alone()
             self.optimizer_G.step()
+
     def wGAN_loss(self,input_data):
         losses = torch.zeros(np.shape(input_data)[0])
         for idx,single_data in enumerate(input_data):
@@ -172,7 +240,6 @@ class BiCycleGANModel(BaseModel):
             losses[idx] = patch_loss
         mean_loss = torch.FloatTensor(1).fill_(torch.mean(losses))
         return Variable(mean_loss,requires_grad=False).cuda()
-
 
     def weightClipping(self,net):
         for p in net.parameters():
@@ -201,7 +268,7 @@ class BiCycleGANModel(BaseModel):
 
     def get_current_errors(self):
         z1 = self.z_encoded.data.cpu().numpy()
-        if self.opt.lambda_z > 0.0:
+        if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
             loss_G = self.loss_G + self.loss_z_L1
         else:
             loss_G = self.loss_G
@@ -212,7 +279,7 @@ class BiCycleGANModel(BaseModel):
             G_L1 = self.loss_G_L1.data[0] if self.loss_G_L1 is not None else 0.0
             ret_dict['G_L1_encoded'] = G_L1
 
-        if self.opt.lambda_z > 0.0:
+        if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
             z_L1 = self.loss_z_L1.data[0] if self.loss_z_L1 is not None else 0.0
             ret_dict['z_L1'] = z_L1
 
@@ -228,6 +295,25 @@ class BiCycleGANModel(BaseModel):
         if self.opt.lambda_GAN2 > 0.0:
             ret_dict['G_GAN2'] = self.loss_G_GAN2.data[0]
             ret_dict['D_GAN2'] = self.loss_D2.data[0]
+
+        if self.opt.whether_local_loss:
+            if self.opt.lambda_GAN_l > 0.0:
+                ret_dict['G_GAN_l'] = self.loss_G_GAN_l.data[0]
+                ret_dict['D_GAN_l'] = self.loss_Dl.data[0]
+
+            if self.opt.lambda_s_l > 0.0:
+                ret_dict['s_l'] = self.loss_s_l.data[0]
+
+            if self.opt.lambda_p_l > 0.0:
+                ret_dict['p_l'] = self.loss_p_l.data[0]
+
+            if self.opt.lambda_g_l > 0.0:
+                ret_dict['g_l'] = self.loss_g_l.data[0]
+
+            if self.opt.lambda_c > 0.0:
+                ret_dict['C'] = self.loss_c.data[0]
+
+
         return ret_dict
 
     def get_current_visuals(self):
@@ -235,15 +321,59 @@ class BiCycleGANModel(BaseModel):
         real_A_random = util.tensor2im(self.real_A_random.data)
         real_B_encoded = util.tensor2im(self.real_B_encoded.data)
         real_B_random = util.tensor2im(self.real_B_random.data)
-        ret_dict = OrderedDict([('real_A_encoded', real_A_encoded), ('real_B_encoded', real_B_encoded),
-                                    ('real_A_random', real_A_random),('real_B_random', real_B_random)])
+
+
+        # ret_dict = OrderedDict([('real_A_encoded', real_A_encoded), ('real_B_encoded', real_B_encoded),
+        #                            ('real_A_random', real_A_random),('real_B_random', real_B_random)])
 
         if self.opt.isTrain:
             fake_random = util.tensor2im(self.fake_B_random.data)
             fake_encoded = util.tensor2im(self.fake_B_encoded.data)
-            ret_dict['fake_random'] = fake_random
-            ret_dict['fake_encoded'] = fake_encoded
-        return ret_dict
+        #    ret_dict['fake_random'] = fake_random
+        #    ret_dict['fake_encoded'] = fake_encoded
+            if self.opt.whether_encode_cloth:
+                real_C_encoded = torch.Tensor(self.fake_B_random.size()).fill_(1.0)
+                real_C_encoded[:, :, 0:self.real_C_encoded.size(2),
+                0:self.real_C_encoded.size(3)] = \
+                    self.real_C_encoded.data
+                real_C_encoded = util.tensor2im(real_C_encoded)
+
+
+
+                ret_dict = OrderedDict([('real_A_encoded', real_A_encoded), ('real_B_encoded', real_B_encoded),
+                                        ('real_C_encoded', real_C_encoded), ('fake_B_encoded', fake_encoded),
+                                        ('fake_B_random', fake_random)])
+
+                # if use z_L1
+                if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
+                    fake_C_random = torch.Tensor(self.fake_B_random.size()).fill_(1.0)
+                    fake_C_random[:, :, 0:self.fake_C_random.data.size(2),
+                    0:self.fake_C_random.data.size(3)] = \
+                        self.fake_C_random.data
+                    fake_C_random = util.tensor2im(fake_C_random)
+                    ret_dict['fake_C_random'] = fake_C_random
+
+                # if use local loss
+                if self.opt.whether_local_loss:
+                    real_C_block_encoded = torch.Tensor(self.fake_B_random.size()).fill_(1.0)
+                    real_C_block_encoded[:, :, 0:self.real_C_blocks_encoded[0].size(2),
+                    0:self.real_C_blocks_encoded[0].size(3)] = \
+                        self.real_C_blocks_encoded[0].data
+                    real_C_block_encoded = util.tensor2im(real_C_block_encoded)
+
+                    fake_B_block_encoded = torch.Tensor(self.fake_B_random.size()).fill_(1.0)
+                    fake_B_block_encoded[:, :, 0:self.fake_B_blocks_encoded[0].size(2),
+                    0:self.fake_B_blocks_encoded[0].size(3)] = \
+                        self.fake_B_blocks_encoded[0].data
+                    fake_B_block_encoded = util.tensor2im(fake_B_block_encoded)
+
+                    ret_dict['real_C_block_encoded'] = real_C_block_encoded
+                    ret_dict['fake_B_block_encoded'] = fake_B_block_encoded
+            else:
+                ret_dict = OrderedDict([('real_A_encoded', real_A_encoded), ('real_B_encoded', real_B_encoded),
+                                        ('real_A_random', real_A_random), ('real_B_random', real_B_random),
+                                        ('fake_random', fake_random), ('fake_encoded', fake_encoded)])
+            return ret_dict
 
     def save(self, label):
         self.save_network(self.netG, 'G', label, self.gpu_ids)
@@ -251,6 +381,8 @@ class BiCycleGANModel(BaseModel):
             self.save_network(self.netD, 'D', label, self.gpu_ids)
         if self.opt.lambda_GAN2 > 0.0 and not self.opt.use_same_D:
             self.save_network(self.netD, 'D2', label, self.gpu_ids)
+        if self.opt.whether_local_loss and self.opt.lambda_GAN_l > 0.0:
+            self.save_network(self.netDl, 'Dl', label, self.gpu_ids)
         self.save_network(self.netE, 'E', label, self.gpu_ids)
 
     # origin bicycleGAN
@@ -308,7 +440,7 @@ class BiCycleGANModel(BaseModel):
             self.real_data_random = self.real_B_random
 
         # compute z_predict
-        if self.opt.lambda_z > 0.0:
+        if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
             self.mu2, logvar2 = self.netE.forward(self.fake_B_random)  # mu2 is a point estimate
 
     # encode clip cloth clothGAN
@@ -316,9 +448,6 @@ class BiCycleGANModel(BaseModel):
         # encode clip image from groud truth
         clip_start_index = (self.opt.fineSize - self.opt.encode_size) // 2
         clip_end_index = clip_start_index + self.opt.encode_size
-        self.real_C_encoded = self.real_B_encoded[:, :, clip_start_index:clip_end_index,
-                              clip_start_index:clip_end_index]
-        self.real_C_random = self.real_B_random[:, :, clip_start_index:clip_end_index, clip_start_index:clip_end_index]
         self.mu, self.logvar = self.netE.forward(self.real_C_encoded)
         std = self.logvar.mul(0.5).exp_()
         eps = self.get_z_random(std.size(0), std.size(1), 'gauss')
@@ -346,6 +475,16 @@ class BiCycleGANModel(BaseModel):
             self.fake_C_random = self.fake_B_random[:, :, clip_start_index:clip_end_index,
                                  clip_start_index:clip_end_index]
             self.mu2, logvar2 = self.netE.forward(self.fake_C_random)  # mu2 is a point estimate
+
+        # whether use local loss
+        if self.opt.whether_local_loss:
+            self.real_C_blocks_encoded = []
+            self.fake_B_blocks_encoded = []
+            for i in range(self.real_C_encoded.size(0)):
+                real_blocks, fake_blocks = self.generate_random_block(self.real_C_encoded[i],
+                                                                      self.fake_B_encoded[i])
+                self.real_C_blocks_encoded.extend(real_blocks)
+                self.fake_B_blocks_encoded.extend(fake_blocks)
 
     # encode clip cloth clothGAN
     def forward_BtoAencodeC(self):
@@ -380,8 +519,11 @@ class BiCycleGANModel(BaseModel):
             self.real_data_encoded = self.real_B_encoded
             self.real_data_random = self.real_B_random
 
-        # compute z_predict
-        if self.opt.lambda_z > 0.0:
-            self.fake_C_random = self.fake_B_random[:, :, clip_start_index:clip_end_index,
-                                 clip_start_index:clip_end_index]
-            self.mu2, logvar2 = self.netE.forward(self.fake_C_random)  # mu2 is a point estimate
+        # whether use local loss
+        if self.opt.whether_local_loss:
+            self.real_C_blocks_encoded = []
+            self.fake_B_blocks_encoded = []
+            for i in range(self.real_C_encoded.size(0)):
+                real_blocks, fake_blocks = self.generate_random_block(self.real_C_encoded[i], self.fake_B_encoded[i])
+                self.real_C_blocks_encoded.extend(real_blocks)
+                self.fake_B_blocks_encoded.extend(fake_blocks)

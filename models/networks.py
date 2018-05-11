@@ -5,6 +5,8 @@ from torch.autograd import Variable
 import functools
 from torch.optim import lr_scheduler
 import numpy as np
+from skimage.feature import greycomatrix, greycoprops
+import torchvision.models as tvmodels
 
 ###############################################################################
 # Functions

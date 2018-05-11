@@ -27,8 +27,34 @@ class TrainOptions(BaseOptions):
         # lambda parameters
         self.parser.add_argument('--lambda_L1', type=float, default=10.0, help='weight for |B-G(A, E(B))|')
         self.parser.add_argument('--lambda_GAN', type=float, default=1.0, help='weight on D loss. D(G(A, E(B)))')
-        self.parser.add_argument('--lambda_GAN2', type=float, default=0, help='weight on D2 loss, D(G(A, random_z))') #1
-        self.parser.add_argument('--lambda_z', type=float, default=0, help='weight for ||E(G(random_z)) - random_z||') #0.5
+        self.parser.add_argument('--lambda_GAN2', type=float, default=1.0, help='weight on D2 loss, D(G(A, random_z))') #1
+        self.parser.add_argument('--lambda_z', type=float, default=0.5, help='weight for ||E(G(random_z)) - random_z||') #0.5  # effective when which_image_encode is not concour!
         self.parser.add_argument('--lambda_kl', type=float, default=0.01, help='weight for KL loss')
         self.parser.add_argument('--use_same_D', action='store_true', help='if two Ds share the weights or not')
+        self.isTrain = True
+
+        # local loss
+        self.parser.add_argument('--whether_local_loss', type=bool, default=True, help='whether use local loss') # should be False if not whether_encode_cloth
+        self.parser.add_argument('--lambda_s_l', type=float, default=2000.0, help='weight for local style loss')
+        self.parser.add_argument('--lambda_p_l', type=float, default=1.0, help='weight for local pixel loss')
+        self.parser.add_argument('--lambda_GAN_l', type=float, default=1.0, help='weight on local D loss')
+        self.parser.add_argument('--lambda_g_l', type=float, default=0.0, help='weight for local glcm loss') # not used
+
+        # content loss
+        self.parser.add_argument('--lambda_c', type=float, default=1.0, help='weight for content loss')
+
+        # VGG features(TextureGAN)
+        self.parser.add_argument('--style_feat_layers', type=list, default=['13', '22'],
+                                 help='feature layers for style loss')
+        self.parser.add_argument('--content_feat_layers', type=list, default=['22'],
+                                 help='feature layers for style loss')
+
+        # VGG features(Style transfer)
+        # self.parser.add_argument('--style_feat_layers', type=list, default=['0', '2', '5', '7', '10', '12', '14', '16', '19', '21', '23', '25', '28', '30', '32', '34'], help='feature layers for style loss')
+        # self.parser.add_argument('--content_feat_layers', type=list, default=['19', '21', '23', '25'], help='feature layers for style loss')
+
+        # local random block
+        self.parser.add_argument('--block_num', type=int, default=5, help='num of random blocks')
+        self.parser.add_argument('--min_block_size', type=int, default=45, help='min size of random block')
+        self.parser.add_argument('--max_block_size', type=int, default=64, help='max size of random block')
         self.isTrain = True

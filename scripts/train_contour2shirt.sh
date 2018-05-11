@@ -11,7 +11,7 @@ NITER=150
 NITER_DECAY=150
 
 # training
-GPU_ID=1
+GPU_ID=0
 DISPLAY_ID=$((GPU_ID*10+1))
 CHECKPOINTS_DIR=../checkpoints_pub/${CLASS}/
 NAME=${CLASS}_${MODEL}
