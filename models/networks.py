@@ -510,7 +510,7 @@ class wGANLoss(nn.Module):
         self.fake_label_var = None
         self.Tensor = tensor
         if dir_loss:
-            self.loss = DirLoss()
+            self.loss = DirLoss()#mean 
         else:
             self.loss = nn.BCELoss()
 
