@@ -54,7 +54,7 @@ class BaseOptions():
         self.parser.add_argument('--upsample', type=str, default='basic', help='basic | bilinear')
         self.parser.add_argument('--nl', type=str, default='relu', help='non-linearity activation: relu | lrelu | elu')
 
-        self.parser.add_argument('--input_image_num',type=int,default=2,help='number of input images:2,3 | if 2: contour+ground truth if 3: contour+ground truth+material')
+        # self.parser.add_argument('--input_image_num',type=int,default=2,help='number of input images:2,3 | if 2: contour+ground truth if 3: contour+ground truth+material')
         self.parser.add_argument('--whether_encode_cloth',type=bool,default=True, help='whether crop the cloth') #maybe modify
         self.parser.add_argument('--GAN_loss_type',type=str,default='wGAN',help='Types of GAN loss: criterionGAN|wGAN|improved_wGAN')
         self.parser.add_argument('--which_image_encode',type=str,default='groundTruth', help='Which image will be encoded:groundTruth|contour')

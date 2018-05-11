@@ -5,7 +5,9 @@ import torch
 from data.base_dataset import BaseDataset
 from data.image_folder import make_dataset
 from PIL import Image
-
+from skimage import io
+import util.util as util
+from torch.autograd import Variable
 
 class AlignedDataset(BaseDataset):
     def initialize(self, opt):
@@ -23,6 +25,12 @@ class AlignedDataset(BaseDataset):
             (self.opt.loadSize * 2, self.opt.loadSize), Image.BICUBIC)
         AB = transforms.ToTensor()(AB)
 
+        # mid = Variable(AB, volatile=True)
+        # temp = util.tensor2im(mid.data)
+        # io.imshow(temp)
+
+
+
         w_total = AB.size(2)
         w = int(w_total / 2)
         h = AB.size(1)
@@ -37,11 +45,7 @@ class AlignedDataset(BaseDataset):
                w_offset:w_offset + self.opt.fineSize]
         B = AB[:, h_offset:h_offset + self.opt.fineSize,
                w + w_offset:w + w_offset + self.opt.fineSize]
-        if self.opt.whether_encode_cloth and self.opt.input_image_num == 3:
-            clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
-            clip_end_index = clip_start_index + self.opt.encode_size
-            C = B[:,clip_start_index:clip_end_index,clip_start_index:clip_end_index]
-            C = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(C)
+
 
         A = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(A)
         B = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(B)
@@ -58,10 +62,6 @@ class AlignedDataset(BaseDataset):
             idx = torch.LongTensor(idx)
             A = A.index_select(2, idx)
             B = B.index_select(2, idx)
-            if self.opt.whether_encode_cloth:
-                idx2 = [j for j in range(C.size(2) - 1, -1, -1)]
-                idx2 = torch.LongTensor(idx2)
-                C = C.index_select(2, idx2)
 
         if input_nc == 1:
             tmp = A[0, ...] * 0.299 + A[1, ...] * 0.587 + A[2, ...] * 0.114
@@ -70,11 +70,20 @@ class AlignedDataset(BaseDataset):
         if output_nc == 1:
             tmp = B[0, ...] * 0.299 + B[1, ...] * 0.587 + B[2, ...] * 0.114
             B = tmp.unsqueeze(0)
-            if self.opt.whether_encode_cloth and self.opt.input_image_num==3:
-                tmp1 = C[0, ...] * 0.299 + C[1, ...] * 0.587 + C[2, ...] * 0.114
-                C = tmp1.unsqueeze(0)
 
-        if self.opt.whether_encode_cloth and self.opt.input_image_num==3:
+        if self.opt.whether_encode_cloth:
+            C = torch.cuda.FloatTensor if self.opt.gpu_ids else torch.Tensor
+            # C = torch.Tensor
+            clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
+            clip_end_index = clip_start_index + self.opt.encode_size
+            if self.opt.which_direction == 'AtoB':
+                C = B[:, clip_start_index:clip_end_index,
+                                      clip_start_index:clip_end_index]
+            else:
+                C = A[:, clip_start_index:clip_end_index,
+                    clip_start_index:clip_end_index]
+
+        if self.opt.whether_encode_cloth:
             return {'A': A, 'B': B, 'C': C,
                     'A_paths': AB_path, 'B_paths': AB_path, 'C_paths': AB_path}
         else:

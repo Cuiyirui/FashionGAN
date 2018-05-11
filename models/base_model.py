@@ -254,7 +254,7 @@ class BaseModel():
         #from skimage import io
         #io.imshow(real_A)
         # add material C
-        if self.opt.whether_encode_cloth and self.opt.input_image_num==3:
+        if self.opt.whether_encode_cloth:
             input_C = input['C']
             if len(self.gpu_ids) > 0:
                 input_C = input_C.cuda(self.gpu_ids[0], async=True)
@@ -280,13 +280,22 @@ class BaseModel():
             clip_start_index = (self.opt.fineSize - self.opt.encode_size) // 2
             clip_end_index = clip_start_index + self.opt.encode_size
             self.real_C = self.real_B[:, :, clip_start_index:clip_end_index,clip_start_index:clip_end_index]
+            self.real_C = Variable(self.input_C, volatile=True)
             # cat 64x64 to 256x256
             self.real_C = torch.cat([self.real_C, self.real_C, self.real_C, self.real_C], 2)
             self.real_C = torch.cat([self.real_C, self.real_C, self.real_C, self.real_C], 3)
             # encode catted cloth
             self.fake_B = self.netG.forward(self.real_C, self.z)
-        else:
+        elif self.opt.whether_encode_cloth and self.opt.which_image_encode=='groundTruth':
+            # cloth
+            self.real_C = Variable(self.input_C, volatile=True)
             self.fake_B = self.netG.forward(self.real_A, self.z)
+        else:
+            if self.opt.which_image_encode=='groundTruth':
+                self.fake_B = self.netG.forward(self.real_A, self.z)
+            else:
+                self.fake_B = self.netG.forward(self.real_B, self.z)
+
     def encode(self, input_data):
         return self.netE.forward(Variable(input_data, volatile=True))
 
@@ -299,7 +308,7 @@ class BaseModel():
             clip_end_index = clip_start_index + self.opt.encode_size
             clip_cloth = self.input_B[:,:,clip_start_index:clip_end_index,clip_start_index:clip_end_index ]
             self.z_encoded = self.encode(clip_cloth)
-        elif self.opt.whether_encode_cloth and self.opt.which_image_encode == 'contour':
+        elif self.opt.which_image_encode == 'contour':
             self.z_encoded = self.encode(self.input_A)
         else:
             self.z_encoded = self.encode(self.input_B)
@@ -322,9 +331,9 @@ class BaseModel():
         real_A = util.tensor2im(self.real_A.data)
         fake_B = util.tensor2im(self.fake_B.data)
         real_B = util.tensor2im(self.real_B.data)
-        if self.opt.whether_encode_cloth and self.opt.input_image_num==3:
+        if self.opt.whether_encode_cloth:
             real_C = util.tensor2im(self.real_C.data)
-            return self.image_paths, real_A, fake_B, real_B, real_C, z_sample
+            return self.image_paths, real_A, fake_B, real_B, z_sample
         else:
             return self.image_paths, real_A, fake_B, real_B, z_sample
 
