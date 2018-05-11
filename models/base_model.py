@@ -270,20 +270,30 @@ class BaseModel():
         z.copy_(z_torch)
         # st()
         self.z = Variable(z, volatile=True)
-        self.fake_B = self.netG.forward(self.real_A, self.z)
         self.real_B = Variable(self.input_B, volatile=True)
-        if self.opt.whether_encode_cloth:
-            self.real_C = Variable(self.input_C, volatile=True)
-
+        if self.opt.wether_encode_cloth and self.opt.which_image_encode=='contour':
+            #clip cloth
+            clip_start_index = (self.opt.fineSize - self.opt.encode_size) // 2
+            clip_end_index = clip_start_index + self.opt.encode_size
+            self.real_C = self.real_B[:, :, clip_start_index:clip_end_index,clip_start_index:clip_end_index]
+            # cat 64x64 to 256x256
+            self.real_C = torch.cat([self.real_C, self.real_C, self.real_C, self.real_C], 2)
+            self.real_C = torch.cat([self.real_C, self.real_C, self.real_C, self.real_C], 3)
+            # encode catted cloth
+            self.fake_B = self.netG.forward(self.real_C, self.z)
+        else:
+            self.fake_B = self.netG.forward(self.real_A, self.z)
     def encode(self, input_data):
         return self.netE.forward(Variable(input_data, volatile=True))
 
     def encode_real_B(self):
-        if self.opt.whether_encode_cloth:
-            # clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
-            # clip_end_index = clip_start_index + self.opt.encode_size
-            # clip_cloth = self.input_B[:,:,clip_start_index:clip_end_index,clip_start_index:clip_end_index ]
-            self.z_encoded = self.encode(self.input_C)
+        if self.opt.wether_encode_cloth and self.opt.which_image_encode == 'groundTrue':
+            clip_start_index = (self.opt.fineSize-self.opt.encode_size)//2
+            clip_end_index = clip_start_index + self.opt.encode_size
+            clip_cloth = self.input_B[:,:,clip_start_index:clip_end_index,clip_start_index:clip_end_index ]
+            self.z_encoded = self.encode(clip_cloth)
+        elif self.opt.wether_encode_cloth and self.opt.which_image_encode == 'contour':
+            self.z_encoded = self.encode(self.input_A)
         else:
             self.z_encoded = self.encode(self.input_B)
         return util.tensor2vec(self.z_encoded)
