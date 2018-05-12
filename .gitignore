@@ -3,6 +3,7 @@
 *.pth
 *.pyc
 debug*
+.idea/
 datasets/
 backup_result/
 pretrained_models/
