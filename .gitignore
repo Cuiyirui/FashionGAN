@@ -2,7 +2,6 @@
 *.fuse*
 *.pth
 *.pyc
-.idea
 debug*
 datasets/
 backup_result/
