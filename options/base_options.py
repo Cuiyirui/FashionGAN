@@ -54,14 +54,14 @@ class BaseOptions():
         self.parser.add_argument('--upsample', type=str, default='basic', help='basic | bilinear')
         self.parser.add_argument('--nl', type=str, default='relu', help='non-linearity activation: relu | lrelu | elu')
 
-        self.parser.add_argument('--input_image_num',type=int,default=2,help='number of input images:2,3 | if 2: contour+ground truth if 3: contour+ground truth+material')
+        # self.parser.add_argument('--input_image_num',type=int,default=2,help='number of input images:2,3 | if 2: contour+ground truth if 3: contour+ground truth+material')
         self.parser.add_argument('--whether_encode_cloth',type=bool,default=True, help='whether crop the cloth') #maybe modify
         self.parser.add_argument('--GAN_loss_type',type=str,default='wGAN',help='Types of GAN loss: criterionGAN|wGAN|improved_wGAN')
-        self.parser.add_argument('--which_image_encode',type=str,default='groundTruth', help='Which image will be encoded:groundTruth|contour')
+        self.parser.add_argument('--which_image_encode',type=str,default='groundTruth', help='Which image will be encoded:groundTruth|contour') #maybe modify
 
         # extra parameters
         self.parser.add_argument('--where_add', type=str, default='all', help='input|all|middle; where to add z in the network G')
-        self.parser.add_argument('--conditional_D', type=bool,default=False, help='if use conditional GAN for D')
+        self.parser.add_argument('--conditional_D', type=bool,default=True, help='if use conditional GAN for D')
         self.parser.add_argument('--init_type', type=str, default='xavier', help='network initialization [normal|xavier|kaiming|orthogonal]')
         self.parser.add_argument('--center_crop', action='store_true', help='if apply for center cropping for the test')
 

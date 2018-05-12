@@ -62,7 +62,7 @@ for i, data in enumerate(islice(dataset, opt.how_many)):
 
 webpage.save()
 #save test result
-test_name_dataset = '1K_'
+test_name_dataset = '2W_'
 if opt.GAN_loss_type == 'wGAN':
     test_name_GAN_type = 'wGAN_'
     test_name_loss_info = 'loss_clip_'+str(opt.clipping_value)+'_'
@@ -79,7 +79,7 @@ test_name_batch = 'batch_'+ str(opt.batchSize)+'_'
 test_name_direction = 'direction_'+opt.which_direction
 
 test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type+test_name_cD\
-            +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/val'
+            +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/'+opt.phase
 origin_name = './results/edges_cloth2shirt/'+opt.phase
 import shutil
 shutil.copytree(origin_name,test_name)
