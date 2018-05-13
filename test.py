@@ -74,11 +74,16 @@ if opt.conditional_D:
     test_name_cD = 'cD_'
 else:
     test_name_cD = '_'
+# local loss
+if opt.whether_local_loss:
+    test_name_local = 'local_'
+else:
+    test_name_local = '_'
 test_name_encode = 'encode_'+ str(opt.encode_size)+'_'
 test_name_batch = 'batch_'+ str(opt.batchSize)+'_'
 test_name_direction = 'direction_'+opt.which_direction
 
-test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type+test_name_cD\
+test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type+test_name_local+test_name_cD\
             +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/'+opt.phase
 origin_name = './results/edges_cloth2shirt/'+opt.phase
 import shutil

@@ -248,14 +248,13 @@ class BaseModel():
             input_B = input_B.cuda(self.gpu_ids[0], async=True)
         self.input_A = input_A
         self.input_B = input_B
-        # debug A
-        #self.real_A = Variable(self.input_A, volatile=True)
-        #real_A=util.tensor2im(self.real_A.data)
-        #from skimage import io
-        #io.imshow(real_A)
+        # show input_A input_B
+        # self.showim(self.input_A)
+        # self.showim(self.input_B)
         # add material C
         if self.opt.whether_encode_cloth:
             input_C = input['C']
+            #self.showim(input_C)
             if len(self.gpu_ids) > 0:
                 input_C = input_C.cuda(self.gpu_ids[0], async=True)
             self.input_C = input_C
@@ -381,3 +380,8 @@ class BaseModel():
         result = input[:, :, y2-self.opt.c_material_size:y2, x2-self.opt.c_material_size:x2]
         result = torch.nn.functional.upsample(result, size=[height, width], mode='bilinear')
         return result
+    def showim(self,torchim):
+        torchim = Variable(torchim, volatile=True)
+        numpyim = util.tensor2im(torchim.data)
+        from skimage import io
+        io.imshow(numpyim)
