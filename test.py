@@ -62,7 +62,7 @@ for i, data in enumerate(islice(dataset, opt.how_many)):
 
 webpage.save()
 #save test result
-test_name_dataset = '2W_'
+test_name_dataset = '1K_'
 if opt.GAN_loss_type == 'wGAN':
     test_name_GAN_type = 'wGAN_'
     test_name_loss_info = 'loss_clip_'+str(opt.clipping_value)+'_'

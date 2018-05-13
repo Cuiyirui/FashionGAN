@@ -25,16 +25,16 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--disc_iters', type=int, default=1, help='number of D updates per G update')
 
         # lambda parameters
-        self.parser.add_argument('--lambda_L1', type=float, default=10.0, help='weight for |B-G(A, E(B))|')
+        self.parser.add_argument('--lambda_L1', type=float, default=1.0, help='weight for |B-G(A, E(B))|') #test 10
         self.parser.add_argument('--lambda_GAN', type=float, default=1.0, help='weight on D loss. D(G(A, E(B)))')
         self.parser.add_argument('--lambda_GAN2', type=float, default=1.0, help='weight on D2 loss, D(G(A, random_z))') #1
         self.parser.add_argument('--lambda_z', type=float, default=0.5, help='weight for ||E(G(random_z)) - random_z||') #0.5  # effective when which_image_encode is not concour!
         self.parser.add_argument('--lambda_kl', type=float, default=0.01, help='weight for KL loss')
-        self.parser.add_argument('--use_same_D', action='store_true', help='if two Ds share the weights or not')
+        self.parser.add_argument('--use_same_D', type=bool, default=False, help='if two Ds share the weights or not')
         self.isTrain = True
 
         # local loss
-        self.parser.add_argument('--lambda_s_l', type=float, default=2000.0, help='weight for local style loss')
+        self.parser.add_argument('--lambda_s_l', type=float, default=1.0, help='weight for local style loss')
         self.parser.add_argument('--lambda_p_l', type=float, default=1.0, help='weight for local pixel loss')
         self.parser.add_argument('--lambda_GAN_l', type=float, default=1.0, help='weight on local D loss')
         self.parser.add_argument('--lambda_g_l', type=float, default=0.0, help='weight for local glcm loss') # not used
