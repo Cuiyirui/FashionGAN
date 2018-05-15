@@ -59,7 +59,12 @@ for epoch in range(1, opt.niter + opt.niter_decay + 1):
 
     model.update_learning_rate()
 
-#save train result
+#save train result and model
+import shutil
+# save model
+shutil.copyfile('../checkpoints_pub/contour2shirt/contour2shirt/latest_net_E.pth','./pretrained_models/latest_net_E.pth')
+shutil.copyfile('../checkpoints_pub/contour2shirt/contour2shirt/latest_net_G.pth','./pretrained_models/latest_net_G.pth')
+# save train result
 test_name_dataset = '1K_'
 # GAN loss type
 if opt.GAN_loss_type == 'wGAN':
@@ -85,5 +90,5 @@ test_name_direction = 'direction_'+opt.which_direction
 test_name = '../results/results_backup/'+test_name_dataset+test_name_GAN_type+test_name_local+test_name_cD\
             +test_name_loss_info+test_name_encode+test_name_batch+test_name_direction+'/train'
 origin_name = '../checkpoints_pub/contour2shirt/contour2shirt_bicycle_gan/web'
-import shutil
+
 shutil.copytree(origin_name,test_name)

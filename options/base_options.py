@@ -39,7 +39,7 @@ class BaseOptions():
                                  help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.')
         self.parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation')
         self.parser.add_argument('--encode_size',type=int,default=64,help='size of image that input encoder,support:16,32,64,128,256, used when whether_encode_cloth is true') #maybe modify
-        self.parser.add_argument('--clipping_value', type=float, default=1e-4, help='value of weight clipping')
+        self.parser.add_argument('--clipping_value', type=float, default=1e-5, help='value of weight clipping')
 
         # models
         self.parser.add_argument('--num_Ds', type=int, default=2, help='number of Discrminators')
