@@ -192,7 +192,7 @@ class BiCycleGANModel(BaseModel):
             self.optimizer_D.step()
             # weight clipping if wGAN
             if self.opt.GAN_loss_type=='wGAN':
-                self.weightClipping(self.netD)
+                self.weightClipping(self.netD,self.opt.clipping_value)
         # update D2
         if self.opt.lambda_GAN2 > 0.0 and not self.opt.use_same_D:
             self.optimizer_D2.zero_grad()
@@ -200,7 +200,7 @@ class BiCycleGANModel(BaseModel):
             self.optimizer_D2.step()
             # weight clipping if wGAN
             if self.opt.GAN_loss_type=='wGAN':
-                self.weightClipping(self.netD2)
+                self.weightClipping(self.netD2,self.opt.clipping_value)
         # update Dl
         if self.opt.whether_local_loss and self.opt.lambda_GAN_l > 0.0:
             self.loss_Dl = 0.0
@@ -211,7 +211,7 @@ class BiCycleGANModel(BaseModel):
             self.loss_Dl=self.loss_Dl/self.real_C_blocks_encoded.size(0)
             self.optimizer_Dl.step()
             if self.opt.GAN_loss_type == 'wGAN':
-                self.weightClipping(self.netDl)
+                self.weightClipping(self.netDl,self.opt.clipping_value)
 
     def backward_G_alone(self):
         # 3, reconstruction |(E(G(A, z_random)))-z_random|
@@ -228,6 +228,9 @@ class BiCycleGANModel(BaseModel):
         self.optimizer_G.zero_grad()
         self.backward_EG()
         self.optimizer_G.step()
+        # weight clipping if wGAN and clipping G
+        if self.opt.GAN_loss_type == 'wGAN' and self.opt.whether_clipping_G:
+            self.weightClipping(self.netG, self.opt.G_clipping_value)
         self.optimizer_E.step()
         # update G only
         if self.opt.lambda_z > 0.0 and not self.opt.which_image_encode == 'contour':
@@ -244,9 +247,9 @@ class BiCycleGANModel(BaseModel):
         mean_loss = torch.FloatTensor(1).fill_(torch.mean(losses))
         return Variable(mean_loss,requires_grad=False).cuda()
 
-    def weightClipping(self,net):
+    def weightClipping(self,net,clipping_value):
         for p in net.parameters():
-            p.data.clamp_(-self.opt.clipping_value,self.opt.clipping_value)
+            p.data.clamp_(-clipping_value,clipping_value)
 
     def gradientPanelty(self,netD,real_data,fake_data):
         alpha = torch.rand(self.opt.batchSize, 1)
