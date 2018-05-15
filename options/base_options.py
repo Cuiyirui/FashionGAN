@@ -40,8 +40,8 @@ class BaseOptions():
         self.parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data argumentation')
         self.parser.add_argument('--encode_size',type=int,default=64,help='size of image that input encoder,support:16,32,64,128,256, used when whether_encode_cloth is true') #maybe modify
         self.parser.add_argument('--clipping_value', type=float, default=1e-5, help='value of weight clipping')
-        self.parser.add_argument('--whether_clipping_G', type=bool, default=True, help='whether clipping G, origin wGAN isnot clip G')
-        self.parser.add_argument('--G_clipping_value', type=float, default=1e-2,help='value of weight clipping in G')
+        self.parser.add_argument('--whether_clipping_G', type=bool, default=False, help='whether clipping G, origin wGAN isnot clip G')
+        self.parser.add_argument('--G_clipping_value', type=float, default=1e-5,help='value of weight clipping in G')
 
         # models
         self.parser.add_argument('--num_Ds', type=int, default=2, help='number of Discrminators')
