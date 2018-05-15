@@ -1000,8 +1000,9 @@ class StyleLoss(nn.Module):
         loss = 0.0
         input_features = self.VGG_Features.forward(input, self.select_layers)
         target_features = self.VGG_Features.forward(target, self.select_layers)
-        for input_feature, target_feature in zip(input_features, target_features):
-            loss = loss + self.criterion(input_feature.detach(), target_feature.detach())
+        loss_layer1 = self.criterion(input_features[0].detach(), target_features[0].detach())
+        loss_layer2 = self.criterion(input_features[1].detach(), target_features[1].detach())
+        loss = loss_layer1 + loss_layer2
         return loss
 
 

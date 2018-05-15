@@ -338,35 +338,48 @@ class BaseModel():
 
     # generate random blocks inside the border
     def generate_random_block(self, input, target):
-        _, height, width = target.size()
+        batch_size,_, height, width = target.size()
         target_tensor = target.data
         block_size = random.randint(self.opt.min_block_size, self.opt.max_block_size)
-        input_blocks = []
-        target_blocks = []
-        for i in range(self.opt.block_num):
-            while True:
-                x = random.randint(0, height - block_size - 1)
-                y = random.randint(0, width - block_size - 1)
-                if not ((0.98 <= target_tensor[0, x, y] <= 1 \
-                         and 0.98 <= target_tensor[1, x, y] <= 1 \
-                         and 0.98 <= target_tensor[2, x, y] <= 1) \
-                        or (0.98 <= target_tensor[0, x + block_size, y + block_size] <= 1 \
-                            and 0.98 <= target_tensor[1, x + block_size, y + block_size] <= 1 \
-                            and 0.98 <= target_tensor[2, x + block_size, y + block_size] <= 1)):
-                    break
-            target_blocks.append(
-                Variable(target_tensor[:, x:x + block_size, y:y + block_size].unsqueeze(0), requires_grad=False))
-            """
-                x_m = random.randint(0, width-block_size-1)
-            y_m = random.randint(0, height-block_size-1)
-                input_blocks.append(Variable(input.data[:, x_m:x_m+block_size, y_m:y_m+block_size].unsqueeze(0), requires_grad=False))
-            """
-            x1 = random.randint(0, self.opt.encode_size - block_size)
-            y1 = random.randint(0, self.opt.encode_size - block_size)
-            input_blocks.append(
-                Variable(input.data[:, x1:x1 + block_size, y1:y1 + block_size].unsqueeze(0), requires_grad=False))
+        for j in range(batch_size):
+            for i in range(self.opt.block_num):
+                while True:
+                    x = random.randint(0, height - block_size - 1)
+                    y = random.randint(0, width - block_size - 1)
+                    if not ((0.98 <= target_tensor[j, 0, x, y] <= 1 \
+                             and 0.98 <= target_tensor[j, 1, x, y] <= 1 \
+                             and 0.98 <= target_tensor[j, 2, x, y] <= 1) \
+                            or (0.98 <= target_tensor[j, 0, x + block_size, y + block_size] <= 1 \
+                                and 0.98 <= target_tensor[j, 1, x + block_size, y + block_size] <= 1 \
+                                and 0.98 <= target_tensor[j, 2, x + block_size, y + block_size] <= 1)):
+                        break
+                target_random_block = Variable(target_tensor[j,:, x:x + block_size, y:y + block_size].unsqueeze(0), requires_grad=False)
+                if i == 0:
+                    target_blocks = target_random_block
+                else:
+                    target_blocks = torch.cat([target_blocks, target_random_block], 0)
 
-        return input_blocks, target_blocks
+                """
+                    x_m = random.randint(0, width-block_size-1)
+                y_m = random.randint(0, height-block_size-1)
+                    input_blocks.append(Variable(input.data[:, x_m:x_m+block_size, y_m:y_m+block_size].unsqueeze(0), requires_grad=False))
+                """
+                x1 = random.randint(0, self.opt.encode_size - block_size)
+                y1 = random.randint(0, self.opt.encode_size - block_size)
+                input_random_block =  Variable(input.data[j,:, x1:x1 + block_size, y1:y1 + block_size].unsqueeze(0), requires_grad=False)
+                if i == 0:
+                    input_blocks = input_random_block
+                else:
+                    input_blocks = torch.cat([input_blocks, target_random_block], 0)
+            if j==0:
+                input_blocks = torch.unsqueeze(input_blocks, 0)
+                target_blocks = torch.unsqueeze(target_blocks, 0)
+                batch_input_blocks = input_blocks
+                batch_target_blocks = target_blocks
+            else:
+                batch_input_blocks = torch.cat([batch_target_blocks, target_blocks], 0)
+                batch_target_blocks = target_blocks
+        return batch_input_blocks, batch_target_blocks
 
     # generate material from fake_B, not be used now
     def generate_material(self, input):

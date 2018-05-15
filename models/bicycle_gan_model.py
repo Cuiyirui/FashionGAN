@@ -133,38 +133,42 @@ class BiCycleGANModel(BaseModel):
             # 4. local gan loss
             if self.opt.lambda_GAN_l > 0.0:
                 self.loss_G_GAN_l = 0.0
-                for fake_block in self.fake_B_blocks_encoded:
-                    self.loss_G_GAN_l = self.loss_G_GAN_l + self.backward_G_GAN(fake_block, self.netDl,
+                for i in range(self.fake_B_blocks_encoded.size(0)):
+                    self.loss_G_GAN_l = self.loss_G_GAN_l + self.backward_G_GAN(self.fake_B_blocks_encoded[i], self.netDl,
                                                                                 self.opt.GAN_loss_type,
                                                                                 self.opt.lambda_GAN_l)
-                self.loss_G_GAN_l = self.loss_G_GAN_l / self.opt.block_num
+                self.loss_G_GAN_l = self.loss_G_GAN_l / self.fake_B_blocks_encoded.size(0)
             else:
                 self.loss_G_GAN_l = 0.0
 
             # 5. local style loss
             if self.opt.lambda_s_l > 0.0:
                 self.loss_s_l = 0.0
-                for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
-                    self.loss_s_l = self.loss_s_l + self.criterionS_l(real_block, fake_block) * self.opt.lambda_s_l
-                self.loss_s_l = self.loss_s_l / self.opt.block_num
+
+                for i in range(self.real_C_blocks_encoded.size(0)):
+                    self.loss_s_l = self.loss_s_l + self.criterionS_l(self.real_C_blocks_encoded[i], self.fake_B_blocks_encoded[i])
+                self.loss_s_l = self.loss_s_l / self.real_C_blocks_encoded.size(0)
+                self.loss_s_l = self.loss_s_l * self.opt.lambda_s_l
             else:
                 self.loss_s_l = 0.0
 
             # 6. local pixel loss
             if self.opt.lambda_p_l > 0.0:
                 self.loss_p_l = 0.0
-                for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
-                    self.loss_p_l = self.loss_p_l + self.criterionL2(real_block, fake_block) * self.opt.lambda_p_l
-                self.loss_p_l = self.loss_p_l / self.opt.block_num
+                for i in range(self.real_C_blocks_encoded.size(0)):
+                    self.loss_p_l = self.loss_p_l + self.criterionL2(self.real_C_blocks_encoded[i], self.fake_B_blocks_encoded[i])
+                self.loss_p_l = self.loss_p_l / self.real_C_blocks_encoded.size(0)
+                self.loss_p_l = self.loss_p_l * self.opt.lambda_p_l
             else:
                 self.loss_p_l = 0.0
 
             # 7. local glcm loss
             if self.opt.lambda_g_l > 0.0:
                 self.loss_g_l = 0.0
-                for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
-                    self.loss_g_l = self.loss_g_l + self.criterionGLCM(real_block, fake_block) * self.opt.lambda_g_l
-                self.loss_g_l = self.loss_g_l / self.opt.block_num
+                for i in range(self.real_C_blocks_encoded.size(0)):
+                    self.loss_g_l = self.loss_g_l + self.criterionGLCM(self.real_C_blocks_encoded[i], self.fake_B_blocks_encoded[i])
+                self.loss_g_l = self.loss_g_l / self.real_C_blocks_encoded.size(0)
+                self.loss_g_l = self.loss_g_l * self.opt.lambda_p_l
             else:
                 self.loss_g_l = 0.0
 
@@ -200,15 +204,14 @@ class BiCycleGANModel(BaseModel):
         # update Dl
         if self.opt.whether_local_loss and self.opt.lambda_GAN_l > 0.0:
             self.loss_Dl = 0.0
-            for real_block, fake_block in zip(self.real_C_blocks_encoded, self.fake_B_blocks_encoded):
-                self.optimizer_Dl.zero_grad()
-                loss_Dl, self.losses_Dl = self.backward_D(self.netDl, real_block, fake_block, self.opt.GAN_loss_type)
+            self.optimizer_Dl.zero_grad()
+            for i in range(self.real_C_blocks_encoded.size(0)):
+                loss_Dl, self.losses_Dl=self.backward_D(self.netDl, self.real_C_blocks_encoded[i], self.fake_B_blocks_encoded[i], self.opt.GAN_loss_type)
                 self.loss_Dl = self.loss_Dl + loss_Dl
-                self.optimizer_Dl.step()
-                if self.opt.GAN_loss_type == 'wGAN':
-                    self.weightClipping(self.netDl)
-            self.loss_Dl = self.loss_Dl / self.opt.block_num
-
+            self.loss_Dl=self.loss_Dl/self.real_C_blocks_encoded.size(0)
+            self.optimizer_Dl.step()
+            if self.opt.GAN_loss_type == 'wGAN':
+                self.weightClipping(self.netDl)
 
     def backward_G_alone(self):
         # 3, reconstruction |(E(G(A, z_random)))-z_random|
@@ -358,13 +361,13 @@ class BiCycleGANModel(BaseModel):
                     real_C_block_encoded = torch.Tensor(self.fake_B_random.size()).fill_(1.0)
                     real_C_block_encoded[:, :, 0:self.real_C_blocks_encoded[0].size(2),
                     0:self.real_C_blocks_encoded[0].size(3)] = \
-                        self.real_C_blocks_encoded[0].data
+                        torch.unsqueeze(self.real_C_blocks_encoded[0][0].data, 0)
                     real_C_block_encoded = util.tensor2im(real_C_block_encoded)
 
                     fake_B_block_encoded = torch.Tensor(self.fake_B_random.size()).fill_(1.0)
                     fake_B_block_encoded[:, :, 0:self.fake_B_blocks_encoded[0].size(2),
                     0:self.fake_B_blocks_encoded[0].size(3)] = \
-                        self.fake_B_blocks_encoded[0].data
+                        torch.unsqueeze(self.fake_B_blocks_encoded[0][0].data, 0)
                     fake_B_block_encoded = util.tensor2im(fake_B_block_encoded)
 
                     ret_dict['real_C_block_encoded'] = real_C_block_encoded
@@ -478,13 +481,7 @@ class BiCycleGANModel(BaseModel):
 
         # whether use local loss
         if self.opt.whether_local_loss:
-            self.real_C_blocks_encoded = []
-            self.fake_B_blocks_encoded = []
-            for i in range(self.real_C_encoded.size(0)):
-                real_blocks, fake_blocks = self.generate_random_block(self.real_C_encoded[i],
-                                                                      self.fake_B_encoded[i])
-                self.real_C_blocks_encoded.extend(real_blocks)
-                self.fake_B_blocks_encoded.extend(fake_blocks)
+            self.real_C_blocks_encoded, self.fake_B_blocks_encoded = self.generate_random_block(self.real_C_encoded,self.fake_B_encoded)
 
     # encode clip cloth clothGAN
     def forward_BtoAencodeC(self):

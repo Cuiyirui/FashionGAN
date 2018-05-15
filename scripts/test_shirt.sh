@@ -1,7 +1,7 @@
 # models
 RESULTS_DIR='./results/edges_cloth2shirt'
-G_PATH='./pretrained_models/10_net_G.pth'
-E_PATH='./pretrained_models/10_net_E.pth'
+G_PATH='./pretrained_models/latest_net_G.pth'
+E_PATH='./pretrained_models/latest_net_E.pth'
 
 # dataset
 CLASS='contour2shirt'
