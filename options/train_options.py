@@ -26,7 +26,7 @@ class TrainOptions(BaseOptions):
 
         # lambda parameters
         self.parser.add_argument('--lambda_L1', type=float, default=40.0, help='weight for |B-G(A, E(B))|') #test 1.5.
-        self.parser.add_argument('--lambda_GAN', type=float, default=1.0, help='weight on D loss. D(G(A, E(B)))')#test 1.5
+        self.parser.add_argument('--lambda_GAN', type=float, default=1e4, help='weight on D loss. D(G(A, E(B)))')#test 1.5
         self.parser.add_argument('--lambda_GAN2', type=float, default=0.0, help='weight on D2 loss, D(G(A, random_z))') #1
         self.parser.add_argument('--lambda_z', type=float, default=0, help='weight for ||E(G(random_z)) - random_z||') #0.5  # effective when which_image_encode is not concour!
         self.parser.add_argument('--lambda_kl', type=float, default=0.01, help='weight for KL loss')
