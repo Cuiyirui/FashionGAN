@@ -8,7 +8,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--update_html_freq', type=int, default=4000, help='frequency of saving training results to html')
         self.parser.add_argument('--print_freq', type=int, default=200, help='frequency of showing training results on console')
         self.parser.add_argument('--save_latest_freq', type=int, default=10000, help='frequency of saving the latest results')
-        self.parser.add_argument('--save_epoch_freq', type=int, default=10, help='frequency of saving checkpoints at the end of epochs')
+        self.parser.add_argument('--save_epoch_freq', type=int, default=1000, help='frequency of saving checkpoints at the end of epochs')
         self.parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
         self.parser.add_argument('--phase', type=str, default='train', help='train, val, test, etc')
         self.parser.add_argument('--which_epoch', type=str, default='latest', help='which epoch to load? set to latest to use latest cached model')
@@ -29,15 +29,15 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_GAN', type=float, default=1e4, help='weight on D loss. D(G(A, E(B)))')#test 1.5
         self.parser.add_argument('--lambda_GAN2', type=float, default=0.0, help='weight on D2 loss, D(G(A, random_z))') #1
         self.parser.add_argument('--lambda_z', type=float, default=0, help='weight for ||E(G(random_z)) - random_z||') #0.5  # effective when which_image_encode is not concour!
-        self.parser.add_argument('--lambda_kl', type=float, default=0.01, help='weight for KL loss')
+        self.parser.add_argument('--lambda_kl', type=float, default=1e-2, help='weight for KL loss')
         self.parser.add_argument('--use_same_D', type=bool, default=True, help='if two Ds share the weights or not')
         self.isTrain = True
 
         # local loss
-        self.parser.add_argument('--lambda_s_l', type=float, default=1.0, help='weight for local style loss')
-        self.parser.add_argument('--lambda_p_l', type=float, default=1.0, help='weight for local pixel loss')
-        self.parser.add_argument('--lambda_GAN_l', type=float, default=1.0, help='weight on local D loss')
-        self.parser.add_argument('--lambda_g_l', type=float, default=1.0, help='weight for local glcm loss') # not used
+        self.parser.add_argument('--lambda_s_l', type=float, default=1e6, help='weight for local style loss')
+        self.parser.add_argument('--lambda_p_l', type=float, default=1, help='weight for local pixel loss')
+        self.parser.add_argument('--lambda_GAN_l', type=float, default=1e5, help='weight on local D loss')
+        self.parser.add_argument('--lambda_g_l', type=float, default=1e6, help='weight for local glcm loss') # not used
 
         # content loss
         self.parser.add_argument('--lambda_c', type=float, default=1.0, help='weight for content loss')

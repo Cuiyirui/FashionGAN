@@ -68,7 +68,7 @@ class BaseOptions():
         self.parser.add_argument('--center_crop', action='store_true', help='if apply for center cropping for the test')
 
         # local loss
-        self.parser.add_argument('--whether_local_loss', type=bool, default=False,help='whether use local loss')  # should be False if not whether_encode_cloth
+        self.parser.add_argument('--whether_local_loss', type=bool, default=True,help='whether use local loss')  # should be False if not whether_encode_cloth
         # VGG features(TextureGAN)
         self.parser.add_argument('--style_feat_layers', type=list, default=['13', '22'],help='feature layers for style loss')
         self.parser.add_argument('--content_feat_layers', type=list, default=['22'],help='feature layers for style loss')
