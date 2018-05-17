@@ -8,7 +8,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--update_html_freq', type=int, default=4000, help='frequency of saving training results to html')
         self.parser.add_argument('--print_freq', type=int, default=200, help='frequency of showing training results on console')
         self.parser.add_argument('--save_latest_freq', type=int, default=10000, help='frequency of saving the latest results')
-        self.parser.add_argument('--save_epoch_freq', type=int, default=1000, help='frequency of saving checkpoints at the end of epochs')
+        self.parser.add_argument('--save_epoch_freq', type=int, default=50, help='frequency of saving checkpoints at the end of epochs')
         self.parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
         self.parser.add_argument('--phase', type=str, default='train', help='train, val, test, etc')
         self.parser.add_argument('--which_epoch', type=str, default='latest', help='which epoch to load? set to latest to use latest cached model')
@@ -26,7 +26,7 @@ class TrainOptions(BaseOptions):
 
         # lambda parameters
         self.parser.add_argument('--lambda_L1', type=float, default=40.0, help='weight for |B-G(A, E(B))|') #test 1.5.
-        self.parser.add_argument('--lambda_GAN', type=float, default=1e4, help='weight on D loss. D(G(A, E(B)))')#test 1.5
+        self.parser.add_argument('--lambda_GAN', type=float, default=1, help='weight on D loss. D(G(A, E(B)))')#test 1.5
         self.parser.add_argument('--lambda_GAN2', type=float, default=0.0, help='weight on D2 loss, D(G(A, random_z))') #1
         self.parser.add_argument('--lambda_z', type=float, default=0, help='weight for ||E(G(random_z)) - random_z||') #0.5  # effective when which_image_encode is not concour!
         self.parser.add_argument('--lambda_kl', type=float, default=1e-2, help='weight for KL loss')

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from collections import OrderedDict
-from torch.autograd import Variable
+from torch.autograd import Variable,grad
 import util.util as util
 from .base_model import BaseModel
 
@@ -86,7 +86,7 @@ class BiCycleGANModel(BaseModel):
             ## improved wGAN loss
             loss_D_fake = self.wGANloss(pred_fake,False)
             loss_D_real = torch.neg(self.wGANloss(pred_real,False))
-            gradient_penalty = gradientPanelty(netD, real, fake)
+            gradient_penalty = self.gradientPanelty(netD, real, fake)
             loss_D = loss_D_fake + loss_D_real + gradient_penalty
             loss_D.backward()
         return loss_D, [loss_D_fake, loss_D_real]
@@ -96,8 +96,9 @@ class BiCycleGANModel(BaseModel):
             pred_fake = netD.forward(fake)
             if loss_type == 'criterionGAN':
                 loss_G_GAN, losses_G_GAN = self.criterionGAN(pred_fake, True)
-            elif loss_type == 'wGAN':
+            elif loss_type == 'wGAN' or loss_type == 'improved_wGAN':
                 loss_G_GAN = self.wGANloss(pred_fake, False)
+
         else:
             loss_G_GAN = 0
         return loss_G_GAN * ll
@@ -252,19 +253,23 @@ class BiCycleGANModel(BaseModel):
             p.data.clamp_(-clipping_value,clipping_value)
 
     def gradientPanelty(self,netD,real_data,fake_data):
-        alpha = torch.rand(self.opt.batchSize, 1)
-        alpha = alpha.expand(self.opt.batchSize, int(real_data.nelement()/self.opt.batchSize)).contiguous()
-        alpha = alpha.view(opt.batchSize,3,64,64)
+        bz = self.opt.batchSize/2
+        alpha = torch.rand(bz, 1)
+        alpha = alpha.expand(bz, int(real_data.nelement()/bz)).contiguous()
+        alpha = alpha.view(bz,real_data.size(1),real_data.size(2),real_data.size(3))
         alpha = alpha.cuda() 
 
         interpolates = alpha * real_data.data + ((1 - alpha) * fake_data.data)
         
         interpolates = interpolates.cuda()
-        interpolates = autograd.Variable(interpolates, requires_grad=True)
+        interpolates = Variable(interpolates, requires_grad=True)
 
         disc_interpolates = netD(interpolates)
+        # patchGAN loss
+        disc_interpolates = torch.mean(disc_interpolates[0])+torch.mean(disc_interpolates[1])
 
-        gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
+
+        gradients = grad(outputs=disc_interpolates, inputs=interpolates,
                               grad_outputs=torch.ones(disc_interpolates.size()).cuda(),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
