@@ -25,7 +25,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--disc_iters', type=int, default=1, help='number of D updates per G update')
 
         # lambda parameters
-        self.parser.add_argument('--lambda_L1', type=float, default=10.0, help='weight for |B-G(A, E(B))|') #test 1.5.
+        self.parser.add_argument('--lambda_L1', type=float, default=0, help='weight for |B-G(A, E(B))|') #test 1.5.
         self.parser.add_argument('--lambda_GAN', type=float, default=1, help='weight on D loss. D(G(A, E(B)))')#test 1.5
         self.parser.add_argument('--lambda_GAN2', type=float, default=0.0, help='weight on D2 loss, D(G(A, random_z))') #1
         self.parser.add_argument('--lambda_z', type=float, default=0, help='weight for ||E(G(random_z)) - random_z||') #0.5  # effective when which_image_encode is not concour!
@@ -35,12 +35,12 @@ class TrainOptions(BaseOptions):
 
         # local loss
         self.parser.add_argument('--lambda_s_l', type=float, default=1e7, help='weight for local style loss')
-        self.parser.add_argument('--lambda_p_l', type=float, default=80, help='weight for local pixel loss')
-        self.parser.add_argument('--lambda_GAN_l', type=float, default=5e6, help='weight on local D loss')
-        self.parser.add_argument('--lambda_g_l', type=float, default=1e6, help='weight for local glcm loss') # not used
+        self.parser.add_argument('--lambda_p_l', type=float, default=160, help='weight for local pixel loss')
+        self.parser.add_argument('--lambda_GAN_l', type=float, default=3e6, help='weight on local D loss')
+        self.parser.add_argument('--lambda_g_l', type=float, default=1e50, help='weight for local glcm loss') # not used
 
         # content loss
-        self.parser.add_argument('--lambda_c', type=float, default=1.0, help='weight for content loss')
+        self.parser.add_argument('--lambda_c', type=float, default=10.0, help='weight for content loss')
 
         # VGG features(Style transfer)
         # self.parser.add_argument('--style_feat_layers', type=list, default=['0', '2', '5', '7', '10', '12', '14', '16', '19', '21', '23', '25', '28', '30', '32', '34'], help='feature layers for style loss')

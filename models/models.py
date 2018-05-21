@@ -5,6 +5,9 @@ def create_model(opt):
     if opt.model == 'bicycle_gan':
         from .bicycle_gan_model import BiCycleGANModel
         model = BiCycleGANModel()
+    elif opt.model =='cloth_gan_2':
+        from .cloth_gan_2_model import ClothGAN2Model
+        model = ClothGAN2Model()
     else:
         raise ValueError("Model [%s] not recognized." % opt.model)
     model.initialize(opt)

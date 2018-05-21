@@ -166,12 +166,18 @@ def define_D(input_nc, ndf, which_model_netD,
     nl_layer = get_non_linearity(layer_type=nl)
     if use_gpu:
         assert(torch.cuda.is_available())
-    if which_model_netD == 'basic_128':
+    if which_model_netD == 'basic_64':
+        netD = D_NLayers(input_nc, ndf, n_layers=1, norm_layer=norm_layer,
+                         nl_layer=nl_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
+    elif which_model_netD == 'basic_128':
         netD = D_NLayers(input_nc, ndf, n_layers=2, norm_layer=norm_layer,
                          nl_layer=nl_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
     elif which_model_netD == 'basic_256':
         netD = D_NLayers(input_nc, ndf, n_layers=3, norm_layer=norm_layer,
                          nl_layer=nl_layer, use_sigmoid=use_sigmoid, gpu_ids=gpu_ids)
+    elif which_model_netD == 'basic_64_multi':
+        netD = D_NLayersMulti(input_nc=input_nc, ndf=ndf, n_layers=1, norm_layer=norm_layer,
+                              use_sigmoid=use_sigmoid, gpu_ids=gpu_ids, num_D=num_Ds)
     elif which_model_netD == 'basic_128_multi':
         netD = D_NLayersMulti(input_nc=input_nc, ndf=ndf, n_layers=2, norm_layer=norm_layer,
                               use_sigmoid=use_sigmoid, gpu_ids=gpu_ids, num_D=num_Ds)
