@@ -9,10 +9,22 @@ from util import html
 import numpy as np
 
 # helper function
-def get_specify_z(opt,speci_num,speci_index):
+def get_specify_z(opt,speci_index):
     z_samples = np.zeros((opt.n_samples + 1, opt.nz))
     for i in range (np.shape(z_samples)[0]):
-        z_samples[i][speci_index]=speci_num
+        z_samples[i][speci_index]=float(i)/10
+    z_samples[i][speci_index]=2
+    return z_samples
+
+def get_specify_z2(opt,idx1,idx2):
+    z_samples = np.zeros((opt.n_samples + 1, opt.nz))
+    for i in range (np.shape(z_samples)[0]):
+        z_samples[i][idx1] = float(i)/10
+        z_samples[i][idx2] = 0.5
+        #z_samples[i][idx3] = np.random.randn(1)
+    z_samples[i][idx1] = 2
+    z_samples[i][idx2] = 2
+    #z_samples[i][idx3] = 2
     return z_samples
 
 #option
@@ -36,14 +48,14 @@ webpage = html.HTML(web_dir, 'Training = %s, Phase = %s, G = %s, E = %s' % (
 
 # sample random z
 if opt.sync:
-    z_samples = get_specify_z(opt,1,0)
+    z_samples = get_specify_z2(opt,0,1)
 
 # test stage
 for i, data in enumerate(islice(dataset, opt.how_many)):
     model.set_input(data)
     print('process input image %3.3d/%3.3d' % (i, opt.how_many))
     if not opt.sync:
-        z_samples = get_specify_z(opt)
+        z_samples = get_specify_z2(opt,3,4)
     for nn in range(opt.n_samples + 1):
         encode_B = nn == 0 and not opt.no_encode
         _, real_A, fake_B, real_B, _ = model.test_simple(
