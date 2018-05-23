@@ -131,11 +131,17 @@ def define_G(input_nc, output_nc, nz, ngf,
     if nz == 0:
         where_add = 'input'
 
-    if which_model_netG == 'unet_128' and where_add == 'input':
+    if which_model_netG == 'unet_64' and where_add == 'input':
+        netG = G_Unet_add_input(input_nc, output_nc, nz, 6, ngf, norm_layer=norm_layer, nl_layer=nl_layer,
+                                use_dropout=use_dropout, gpu_ids=gpu_ids, upsample=upsample)
+    elif which_model_netG == 'unet_128' and where_add == 'input':
         netG = G_Unet_add_input(input_nc, output_nc, nz, 7, ngf, norm_layer=norm_layer, nl_layer=nl_layer,
                                 use_dropout=use_dropout, gpu_ids=gpu_ids, upsample=upsample)
     elif which_model_netG == 'unet_256' and where_add == 'input':
         netG = G_Unet_add_input(input_nc, output_nc, nz, 8, ngf, norm_layer=norm_layer, nl_layer=nl_layer,
+                                use_dropout=use_dropout, gpu_ids=gpu_ids, upsample=upsample)
+    elif which_model_netG == 'unet_64' and where_add == 'all':
+        netG = G_Unet_add_input(input_nc, output_nc, nz, 6, ngf, norm_layer=norm_layer, nl_layer=nl_layer,
                                 use_dropout=use_dropout, gpu_ids=gpu_ids, upsample=upsample)
     elif which_model_netG == 'unet_128' and where_add == 'all':
         netG = G_Unet_add_all(input_nc, output_nc, nz, 7, ngf, norm_layer=norm_layer, nl_layer=nl_layer,

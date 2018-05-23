@@ -25,7 +25,7 @@ class BaseOptions():
         self.parser.add_argument('--name', type=str, default='contour2shirt', help='name of the experiment. It decides where to store samples and models')
         self.parser.add_argument('--resize_or_crop', type=str, default='resize_and_crop', help='not implemented')
         self.parser.add_argument('--dataset_mode', type=str, default='aligned', help='aligned,single')
-        self.parser.add_argument('--model', type=str, default='bicycle_gan', help='chooses which model to use. bicycle,, ...')
+        self.parser.add_argument('--model', type=str, default='vae', help='chooses which model to use. bicycle,, ...')
         self.parser.add_argument('--which_direction', type=str, default='AtoB', help='AtoB or BtoA')
         self.parser.add_argument('--nThreads', default=4, type=int, help='# sthreads for loading data')
         self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')

@@ -34,6 +34,18 @@ class BaseModel():
                                         which_model_netG=opt.which_model_netG,
                                         norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout, init_type=opt.init_type,
                                         gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
+        elif self.opt.which_image_encode == '3_chanel':
+            self.netG = networks.define_G(3, opt.output_nc, opt.nz, opt.ngf,
+                                          which_model_netG=opt.which_model_netG,
+                                          norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout,
+                                          init_type=opt.init_type,
+                                          gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
+        elif self.opt.which_image_encode == '1_chanel':
+            self.netG = networks.define_G(1, opt.output_nc, opt.nz, opt.ngf,
+                                          which_model_netG=opt.which_model_netG,
+                                          norm=opt.norm, nl=opt.nl, use_dropout=opt.use_dropout,
+                                          init_type=opt.init_type,
+                                          gpu_ids=self.gpu_ids, where_add=self.opt.where_add, upsample=opt.upsample)
 
         networks.print_network(self.netG)
         self.netD, self.netD2, self.netDp = None, None, None
@@ -75,6 +87,18 @@ class BaseModel():
                                             vaeLike=use_vae)
             elif self.opt.which_image_encode == 'contour':
                 self.netE = networks.define_E(input_nc=1, output_nc=opt.nz, ndf=opt.nef,
+                                              which_model_netE=opt.which_model_netE,
+                                              norm=opt.norm, nl=opt.nl,
+                                              init_type=opt.init_type, gpu_ids=self.gpu_ids,
+                                              vaeLike=use_vae)
+            elif self.opt.which_image_encode == '3_chanel':
+                self.netE = networks.define_E(opt.output_nc, opt.nz, opt.nef,
+                                              which_model_netE=opt.which_model_netE,
+                                              norm=opt.norm, nl=opt.nl,
+                                              init_type=opt.init_type, gpu_ids=self.gpu_ids,
+                                              vaeLike=use_vae)
+            elif self.opt.which_image_encode == '1_chanel':
+                self.netE = networks.define_E(opt.output_nc, opt.nz, opt.nef,
                                               which_model_netE=opt.which_model_netE,
                                               norm=opt.norm, nl=opt.nl,
                                               init_type=opt.init_type, gpu_ids=self.gpu_ids,

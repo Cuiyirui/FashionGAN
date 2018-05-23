@@ -8,6 +8,9 @@ def create_model(opt):
     elif opt.model =='cloth_gan_2':
         from .cloth_gan_2_model import ClothGAN2Model
         model = ClothGAN2Model()
+    elif opt.model =='vae':
+        from .vae_gan_model import VaeGANModel
+        model = VaeGANModel()
     else:
         raise ValueError("Model [%s] not recognized." % opt.model)
     model.initialize(opt)
